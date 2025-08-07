@@ -4,15 +4,24 @@
       target="_blank" class="footer-link">ElephantRoots</a>
   </p>
 </footer>
+<?php
+  // Auto-open modal if session message exists and user is NOT logged in
+  $showModal = '';
+  $isLoggedIn = !empty($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+  if (!$isLoggedIn) {
+    if (isset($_SESSION['error'])) {
+      $showModal = "register";
+      unset($_SESSION['error']);
+    } elseif (isset($_SESSION['success'])) {
+      $showModal = "login";
+      unset($_SESSION['success']);
+    }
+  }
+?>
 <script>
-  // Auto-open modal if session message exists
-  <?php if (isset($_SESSION['error'])): ?>
+  <?php if ($showModal): ?>
     window.addEventListener('DOMContentLoaded', function () {
-      showAuthModal('register');
-    });
-  <?php elseif (isset($_SESSION['success'])): ?>
-    window.addEventListener('DOMContentLoaded', function () {
-      showAuthModal('login');
+      showAuthModal('<?php echo $showModal; ?>');
     });
   <?php endif; ?>
   // Set current year in footer
@@ -33,7 +42,7 @@
     </div>
     <!-- Right: Form -->
     <div class="w-full md:w-1/2 flex flex-col justify-center p-8 h-full">
-      <h2 id="authModalHeading" class="text-2xl font-bold mb-6 text-primary">Login</h2>
+      <h2 id="authModalHeading" class="text-2xl font-bold mb-4 text-primary">Login</h2>
       <!-- Login Form -->
       <form id="loginForm" class="auth-form" method="POST" action="<?php echo APP_URL; ?>/login">
         <div class="mb-4">
@@ -74,15 +83,29 @@
                 body: data,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
               });
-              const result = await res.json();
+              const text = await res.text();
+              let result;
+              try {
+                result = JSON.parse(text);
+              } catch (jsonErr) {
+                errorDiv.textContent = 'Invalid server response. Please contact support.';
+                return;
+              }
               if (result.success) {
                 document.querySelector('.alert-success')?.remove();
                 const msg = document.createElement('div');
-                msg.className = 'alert alert-success bg-green-100 text-green-800 px-4 py-2 rounded mb-2 mt-2';
+                msg.className = 'alert alert-success bg-green-100 text-green-800 px-4 py-2 rounded mb-2 ';
                 msg.textContent = result.success;
                 form.parentNode.insertBefore(msg, form);
-                // Optionally reload or redirect after login
-                setTimeout(() => window.location.reload(), 1000);
+               
+                // Redirect based on user_role
+                if (result.user_role === 'admin') {
+                  setTimeout(function() {
+                    window.location.href = '<?php echo APP_URL; ?>/admin/dashboard';
+                  }, 500);
+                } else {
+                  setTimeout(() => window.location.reload(), 1000);
+                }
               } else if (result.error) {
                 errorDiv.textContent = result.error;
               }
@@ -140,33 +163,61 @@
                 </svg></span></button>
           </div>
         </div>
+        <div class="mb-4 flex items-start">
+          <input type="checkbox" id="policyCheck" name="policyCheck" class="mt-1 mr-2" />
+          <label for="policyCheck" class="text-sm text-gray-700 select-none">I have read the <a href="<?php echo APP_URL; ?>/privacy-policy" target="_blank" class="text-blue-600 underline">Privacy Policy</a> and <a href="<?php echo APP_URL; ?>/termsandconditions" target="_blank" class="text-blue-600 underline">Terms and Conditions</a></label>
+        </div>
         <div id="registerError" class="text-red-500 text-sm mb-2"></div>
+        <div id="policyError" class="text-red-500 text-sm mb-2"></div>
         <script>
-          // AJAX registration
+          // AJAX registration with password validation
           document.getElementById('registerForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const form = e.target;
             const data = new FormData(form);
             const errorDiv = document.getElementById('registerError');
+            const policyErrorDiv = document.getElementById('policyError');
             errorDiv.textContent = '';
+            policyErrorDiv.textContent = '';
+            const policyChecked = document.getElementById('policyCheck').checked;
+            if (!policyChecked) {
+              policyErrorDiv.textContent = 'Please read and accept the Privacy Policy and Terms and Conditions.';
+              return;
+            }
+            // Password validation
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password').value;
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,}$/;
+            if (!passwordRegex.test(password)) {
+              errorDiv.textContent = 'Password must be at least 6 characters and include a lowercase letter, uppercase letter, number, and symbol.';
+              return;
+            }
+            if (password !== confirmPassword) {
+              errorDiv.textContent = 'Passwords do not match.';
+              return;
+            }
             try {
               const res = await fetch(form.action, {
                 method: 'POST',
                 body: data,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
               });
-              const result = await res.json();
+              const text = await res.text();
+              let result;
+              try {
+                result = JSON.parse(text);
+              } catch (jsonErr) {
+                errorDiv.textContent = 'Invalid server response. Please contact support.';
+                return;
+              }
               if (result.success) {
                 document.querySelector('.alert-success')?.remove();
                 const msg = document.createElement('div');
-                msg.className = 'alert alert-success bg-green-100 text-green-800 px-4 py-2 rounded mb-2 mt-2';
+                msg.className = 'alert alert-success bg-green-100 text-green-800 px-4 py-2 rounded mb-2 ';
                 msg.textContent = result.success;
                 form.parentNode.insertBefore(msg, form);
-                if (result.redirect) {
-                  setTimeout(() => window.location.href = result.redirect, 1000);
-                } else {
-                  showLoginForm();
-                }
+                let redirectUrl = result.redirect;
+                setTimeout(() => window.location.href = redirectUrl, 1000);
               } else if (result.error) {
                 errorDiv.textContent = result.error;
               }

@@ -4,7 +4,7 @@ require_once __DIR__ . '/../helpers/auth.php';
 require_once __DIR__ . '/../models/Location.php';
 require_once __DIR__ . '/../models/ProfilePicture.php';
 require_once __DIR__ . '/../config/database.php';
-checkUserAuth();
+
 
 $pdo = getPDO();
 $locationModel = new Location($pdo);
@@ -33,26 +33,9 @@ $femaleAvatars = UserController::getRandomAvatars(array_values($femaleAvatars), 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 
-    <title>RoomLinks | Offical Website</title>
+    <title>Complete Profile | RoomLinks | Offical Website</title>
 
-    <meta name="description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta name="author" content="RoomLinks" />
-    <!-- Open Graph / Facebook -->
-    <meta property="og:title" content="RoomLinks | Official Website" />
-    <meta property="og:description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta property="og:image" content="assets/hero-section/description.png" />
-    <meta property="og:url" content="https://roomlinks.in" />
-    <meta property="og:type" content="website" />
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="RoomLinks | Official Website" />
-    <meta name="twitter:description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta name="twitter:image" content="assets/hero-section/description.png" />
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://roomlinks.in" />
+    <link rel="icon" type="image/x-icon" href="assets/logo/favicon.ico" />
 
     <style>
         #avatar_suggestions label {
@@ -116,9 +99,9 @@ $femaleAvatars = UserController::getRandomAvatars(array_values($femaleAvatars), 
                         class="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full"
                         required>
                         <option value="">Select an option</option>
-                        <option value="looking_room">Looking for room/PG/flat</option>
-                        <option value="has_room">Has a room, looking for roommate</option>
-                        <option value="owner">Owns a room, looking for tenant</option>
+                        <option value="roommate">Looking for room/roommate/PG</option>
+                        <option value="flat_owner">Flat Owner</option>
+                        <option value="pg_owner ">PG Owner</option>
                     </select>
                 </div>
                 <div class="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
@@ -359,6 +342,18 @@ $femaleAvatars = UserController::getRandomAvatars(array_values($femaleAvatars), 
                 const successDiv = document.getElementById('profileSuccess');
                 errorDiv.style.display = 'none';
                 successDiv.style.display = 'none';
+
+                // Require either profile image or avatar selection
+                const profileInput = document.getElementById('profile_picture_input');
+                const avatarInput = document.getElementById('avatar_input');
+                const hasProfileImage = profileInput && profileInput.files && profileInput.files.length > 0;
+                const hasAvatar = avatarInput && avatarInput.value && avatarInput.value.trim() !== '';
+                if (!hasProfileImage && !hasAvatar) {
+                    errorDiv.textContent = 'Please upload a profile image or select an avatar.';
+                    errorDiv.style.display = '';
+                    return;
+                }
+
                 try {
                     const res = await fetch(window.location.pathname, {
                         method: 'POST',

@@ -2,9 +2,19 @@
 <?php
 require_once __DIR__ . '/../helpers/auth.php';
 require_once __DIR__ . '/../controllers/UserController.php';
+require_once __DIR__ . '/../models/UserModel.php';
 checkUserAuth();
 $userController = new UserController();
 $vibes = $userController->getVibes();
+// Get current user's selected vibes from profile table
+$userId = $_SESSION['user_id'];
+$userModel = new UserModel();
+$profile = $userModel->getProfileById($userId);
+$selectedVibes = [];
+if (!empty($profile['vibes'])) {
+    // Split by pipe and trim
+    $selectedVibes = array_filter(array_map('trim', preg_split('/[|]/', $profile['vibes'])));
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -17,31 +27,14 @@ $vibes = $userController->getVibes();
     <link rel="stylesheet" href="styles/hide-scrollbar.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" />
 
-    <title>RoomLinks | Offical Website</title>
+    <title>My Vibes | RoomLinks | Offical Website</title>
 
-    <meta name="description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta name="author" content="RoomLinks" />
-    <!-- Open Graph / Facebook -->
-    <meta property="og:title" content="RoomLinks | Official Website" />
-    <meta property="og:description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta property="og:image" content="assets/hero-section/description.png" />
-    <meta property="og:url" content="https://roomlinks.in" />
-    <meta property="og:type" content="website" />
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="RoomLinks | Official Website" />
-    <meta name="twitter:description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta name="twitter:image" content="assets/hero-section/description.png" />
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://roomlinks.in" />
+    <link rel="icon" type="image/x-icon" href="assets/logo/favicon.ico" />
 
 </head>
 
 <body class="flex flex-col min-h-screen">
-    <?php include 'partials/logo.php' ?>
+    <?php include 'partials/header.php' ?>
     <div class="flex-grow flex items-center justify-center px-4 ">
 
         <!-- Vibes Start -->
@@ -54,9 +47,10 @@ $vibes = $userController->getVibes();
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6 mb-8 justify-items-center">
                     <!-- Vibe Images Start -->
                     <?php foreach ($vibes as $vibe): ?>
+                    <?php $isChecked = in_array($vibe['id'], $selectedVibes); ?>
                     <label class="flex flex-col items-center cursor-pointer group">
-                        <input type="checkbox" name="vibes[]" value="<?= htmlspecialchars($vibe['id']) ?>" class="hidden peer" />
-                        <span class="w-20 h-20 md:w-28 md:h-28 rounded-full bg-white shadow-md flex items-center justify-center mb-2 border-2 border-transparent peer-checked:border-blue-500 transition">
+                        <input type="checkbox" name="vibes[]" value="<?= htmlspecialchars($vibe['id']) ?>" class="hidden peer" <?= $isChecked ? 'checked' : '' ?> />
+                        <span class="w-20 h-20 md:w-28 md:h-28 rounded-full bg-white shadow-md flex items-center justify-center mb-2 border-2 border-transparent <?= $isChecked ? 'border-blue-500' : '' ?> peer-checked:border-blue-500 transition">
                             <img src="<?= htmlspecialchars($vibe['images']) ?>" alt="<?= htmlspecialchars($vibe['name']) ?>"
                                 class="w-14 h-14 md:w-20 md:h-20 object-contain rounded-full" /> 
                         </span>
@@ -117,7 +111,7 @@ $vibes = $userController->getVibes();
         .catch(() => {
             btn.disabled = false;
             var errorDiv = document.getElementById('vibesError');
-            errorDiv.textContent = 'Failed to update vibes. Please try again.';
+            errorDiv.textContent = 'Failed to update vibes. Please Select Atleast 5 Vibes.';
             errorDiv.style.display = '';
         });
     });

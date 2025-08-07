@@ -173,4 +173,27 @@ class Vibes {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // Static method to get vibes by array of IDs (for use in roomlisting.php)
+    public static function getVibesByIds($ids) {
+        if (empty($ids)) return [];
+        require_once __DIR__ . '/../config/database.php';
+        $pdo = getPDO();
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT id, name, images FROM vibes WHERE id IN ($placeholders)";
+        $stmt = $pdo->prepare($sql);
+        foreach ($ids as $k => $id) {
+            $stmt->bindValue($k + 1, (int)$id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $vibes = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $vibes[] = [
+                'id' => $row['id'],
+                'name' => $row['name'],
+                'image' => $row['images']
+            ];
+        }
+        return $vibes;
+    }
 }

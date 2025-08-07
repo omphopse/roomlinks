@@ -3,6 +3,24 @@
   --secondary-color: #e3f2fd;
 }
 
+#mobileBottomNav {
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  border-radius: 1rem 1rem 0 0;
+  transition: transform 0.5s cubic-bezier(.4,0,.2,1);
+  will-change: transform;
+}
+
+#mobileBottomNav.hidden {
+  transform: translateY(100%);
+}
+
+#mobileBottomNav .material-icons {
+  font-size: 2rem;
+  color: var(--primary-color);
+}
+
 html,
 body {
   height: 100%;
@@ -1144,7 +1162,7 @@ footer {
   align-items: center;
   gap: 0.5rem;
   color: #374151;
-  max-width: 110px;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

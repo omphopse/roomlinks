@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css">
 
   <title>RoomLinks | Offical Website</title>
+
+  <link rel="icon" type="image/x-icon" href="assets/logo/favicon.ico" />
 </head>
 
 <body>

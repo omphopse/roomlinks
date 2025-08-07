@@ -1,4 +1,17 @@
-<?php require_once __DIR__ . '/../config/constants.php'; ?>
+<?php 
+require_once __DIR__ . '/../config/constants.php';
+require_once __DIR__ . '/../controllers/UserController.php';
+checkUserAuth();
+$listingData = null;
+$isEdit = false;
+if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+    $userController = new UserController();
+    $listingData = $userController->getListingById((int)$_GET['id']);
+    $isEdit = $listingData ? true : false;
+}
+
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,26 +23,9 @@
     <link rel="stylesheet" href="styles/hide-scrollbar.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" />
 
-    <title>RoomLinks | Offical Website</title>
+    <title>Add A Room Requirment | RoomLinks | Offical Website</title>
 
-    <meta name="description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta name="author" content="RoomLinks" />
-    <!-- Open Graph / Facebook -->
-    <meta property="og:title" content="RoomLinks | Official Website" />
-    <meta property="og:description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta property="og:image" content="assets/hero-section/description.png" />
-    <meta property="og:url" content="https://roomlinks.in" />
-    <meta property="og:type" content="website" />
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="RoomLinks | Official Website" />
-    <meta name="twitter:description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta name="twitter:image" content="assets/hero-section/description.png" />
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://roomlinks.in" />
+    <link rel="icon" type="image/x-icon" href="assets/logo/favicon.ico" />
 
 </head>
 
@@ -42,21 +38,25 @@
             sm:mx-4 md:mx-8 lg:mx-0">
             <h2 class="text-2xl font-semibold text-center mb-1">Add your requirement</h2>
             <p class="text-center text-gray-500 mb-6 text-sm">so that other users can contact you.</p>
-            <form class="space-y-6" id="requirementForm">
+            <form class="space-y-6" id="requirementForm" method="POST" action="<?php echo $isEdit ? (APP_URL . '/update-roommatelisting') : (APP_URL . '/add-roommatelisting'); ?>">
+                <?php if ($isEdit): ?>
+                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($listingData['id']); ?>">
+                <?php endif; ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-bold mb-1">Add Your Location*</label>
-                        <input type="text" placeholder="Add Location.."
+                        <input type="text" placeholder="Add Location.." name="location"
                             class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"
-                            required>
+                            required value="<?php echo $isEdit ? htmlspecialchars($listingData['location']) : ''; ?>">
                     </div>
                     <div>
                         <label class="block text-sm font-bold mb-1">Approx Rent*</label>
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 text-gray-400">₹</span>
                             <input type="number" placeholder="5000"
+                                name="rent"
                                 class="w-full border border-gray-300 rounded-lg pl-8 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"
-                                required>
+                                required value="<?php echo $isEdit ? htmlspecialchars($listingData['rent']) : ''; ?>">
                         </div>
                     </div>
                     <div>
@@ -69,7 +69,7 @@
                             <button type="button" class="select-btn" data-group="looking_for"
                                 data-value="any">Any</button>
                         </div>
-                        <input type="hidden" name="looking_for" id="looking_for_input" value="any">
+                        <input type="hidden" name="looking_for" id="looking_for_input" value="<?php echo $isEdit ? htmlspecialchars($listingData['gender']) : 'any'; ?>">
                     </div>
                     <div>
                         <label class="block text-sm font-bold mb-1">Occupancy</label>
@@ -81,92 +81,37 @@
                             <button type="button" class="select-btn" data-group="occupancy"
                                 data-value="any">Any</button>
                         </div>
-                        <input type="hidden" name="occupancy" id="occupancy_input" value="single">
+                        <input type="hidden" name="occupancy" id="occupancy_input" value="<?php echo $isEdit ? htmlspecialchars($listingData['occupancy']) : 'single'; ?>">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-bold mb-1">Choose Highlights for your property</label>
                     <div class="flex flex-wrap gap-3 mt-2 option-group">
+                        <?php
+                        require_once __DIR__ . '/../config/database.php';
+                        $conn = isset($conn) ? $conn : (function() {
+                            $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+                            if ($conn->connect_error) die('Database connection failed');
+                            return $conn;
+                        })();
+                        $result = $conn->query("SELECT id, name FROM property_highlights ORDER BY name ASC");
+                        if ($result && $result->num_rows > 0) {
+                            while ($row = $result->fetch_assoc()) {
+                        ?>
                         <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="Working full time" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">Working
-                                full time</span>
+                            <input type="checkbox" name="highlights[]" value="<?php echo (int)$row['id']; ?>" class="hidden peer"
+                                <?php if ($isEdit && in_array($row['id'], $listingData['highlights'])) echo 'checked'; ?>>
+                            <span class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">
+                                <?php echo htmlspecialchars($row['name']); ?>
+                            </span>
                         </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="College student" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">College
-                                student</span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="25+ age" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">25+
-                                age</span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="<25 age" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">&lt;25
-                                age</span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="Working night shifts" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">Working
-                                night shifts</span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="Have 2 wheeler" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">Have
-                                2 wheeler</span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="Have 4 wheeler" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">Have
-                                4 wheeler</span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="Will shift immediately"
-                                class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">Will
-                                shift immediately</span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="Have pets" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">Have
-                                pets</span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="Need no furnishing" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">Need
-                                no furnishing</span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="highlights[]" value="Pure vegetarian" class="hidden peer">
-                            <span
-                                class="highlight-btn option-btn peer-checked:bg-[--primary-color] peer-checked:text-white peer-checked:border-[--primary-color]">Pure
-                                vegetarian</span>
-                        </label>
+                        <?php
+                            }
+                        }
+                        ?>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-bold mb-1">Are you interested in PG too?</label>
-                        <div class="select-group option-group">
-                            <button type="button" class="select-btn" data-group="pg_interest"
-                                data-value="yes">Yes</button>
-                            <button type="button" class="select-btn" data-group="pg_interest"
-                                data-value="no">No</button>
-                        </div>
-                        <input type="hidden" name="pg_interest" id="pg_interest_input" value="no">
-                    </div>
+                <div class="grid grid-cols-1 gap-6">
                     <div>
                         <label class="block text-sm font-bold mb-1">Preferred Contact Method</label>
                         <div class="select-group option-group">
@@ -174,18 +119,23 @@
                             <button type="button" class="select-btn" data-group="contact_method" data-value="whatsapp">WhatsApp</button>
                             <button type="button" class="select-btn" data-group="contact_method" data-value="email">Email</button>
                         </div>
-                        <input type="hidden" name="contact_method" id="contact_method_input" value="call">
+                        <p class="text-xs text-gray-500 mt-2">Note: The contact methods you select will be shared with
+                            other users so they can reach out to you using your preferred options.</p>
+                        <input type="hidden" name="contact_method" id="contact_method_input" value="<?php echo $isEdit ? htmlspecialchars($listingData['contact']) : 'call'; ?>">
+                        <p id="contact-method-error" class="text-xs text-red-500 mt-2 hidden">Please select at least 2 contact methods.</p>
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-bold mb-1">Description*</label>
-                    <textarea id="description" rows="3" maxlength="3000" placeholder="I am looking for a room with roommate."
+                    <textarea id="description" rows="10" maxlength="3000" name="description"
+                        placeholder="I am looking for a room with roommate."
                         class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"
-                        required></textarea>
+                        required><?php echo $isEdit ? htmlspecialchars($listingData['description']) : ''; ?></textarea>
                     <div class="flex justify-between items-center mt-1">
                         <span id="desc-word-count" class="text-xs text-gray-500">0/300 words</span>
                         <span id="desc-word-warning" class="text-xs text-red-500 hidden">Word limit reached!</span>
                     </div>
+                    <p id="desc-minword-error" class="text-xs text-red-500 mt-2 hidden">Please enter at least 20 words in the description.</p>
                 </div>
                 <div class="flex justify-center">
                     <button type="submit"
@@ -193,7 +143,8 @@
                         &gt;</button>
                 </div>
                 <div class="text-center mt-2 text-sm text-gray-500">
-                    Have room & need roommate? <a href="#" class="text-[--primary-color] font-semibold underline">Add Room
+                    Have room & need roommate? <a href="#" class="text-[--primary-color] font-semibold underline">Add
+                        Room
                         &gt;</a>
                 </div>
             </form>
@@ -205,35 +156,67 @@
     <?php include 'partials/footer.php' ?>
 
     <script>
-        function setupButtonGroup(groupName, defaultValue) {
+        function setupButtonGroup(groupName, defaultValue, multiSelect = false) {
             const btns = document.querySelectorAll('.select-btn[data-group="' + groupName + '"]');
             const input = document.getElementById(groupName + "_input");
-            btns.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    btns.forEach(b => b.classList.remove('selected'));
-                    this.classList.add('selected');
-                    input.value = this.dataset.value;
+            if (multiSelect) {
+                // Support multiple default values (comma or pipe separated)
+                let defaults = [];
+                if (typeof defaultValue === 'string') {
+                    defaults = defaultValue.split(/[,|]/).map(v => v.trim()).filter(Boolean);
+                } else if (Array.isArray(defaultValue)) {
+                    defaults = defaultValue;
+                }
+                btns.forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        this.classList.toggle('selected');
+                        // Collect all selected values
+                        const selected = Array.from(btns).filter(b => b.classList.contains('selected')).map(b => b.dataset.value);
+                        input.value = selected.join(',');
+                    });
+                    // Set initial selection if in defaults
+                    if (defaults.includes(btn.dataset.value)) {
+                        btn.classList.add('selected');
+                    }
                 });
-            });
-            // Set default
-            let defaultBtn = Array.from(btns).find(b => b.dataset.value === defaultValue);
-            if (defaultBtn) {
-                defaultBtn.classList.add('selected');
-                input.value = defaultValue;
+                // Set input value to all selected
+                const selected = Array.from(btns).filter(b => b.classList.contains('selected')).map(b => b.dataset.value);
+                input.value = selected.join(',');
+            } else {
+                btns.forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        btns.forEach(b => b.classList.remove('selected'));
+                        this.classList.add('selected');
+                        input.value = this.dataset.value;
+                    });
+                });
+                // Set default
+                let defaultBtn = Array.from(btns).find(b => b.dataset.value === defaultValue);
+                if (defaultBtn) {
+                    defaultBtn.classList.add('selected');
+                    input.value = defaultValue;
+                }
             }
         }
         document.addEventListener('DOMContentLoaded', function () {
-            setupButtonGroup('looking_for', 'any');
-            setupButtonGroup('occupancy', 'single');
+            // Use PHP to inject the correct values for edit mode, else use defaults
+            var lookingForVal = '<?php echo $isEdit ? htmlspecialchars($listingData['gender']) : 'any'; ?>';
+            var occupancyVal = '<?php echo $isEdit ? htmlspecialchars($listingData['occupancy']) : 'single'; ?>';
+            var contactMethodVal = '<?php echo $isEdit ? htmlspecialchars($listingData['contact']) : 'call'; ?>';
+            // contactMethodVal may be pipe-separated, convert to comma for JS
+            contactMethodVal = contactMethodVal.replace(/\s*\|\s*/g, ',');
+            setupButtonGroup('looking_for', lookingForVal);
+            setupButtonGroup('occupancy', occupancyVal);
             setupButtonGroup('pg_interest', 'no');
             setupButtonGroup('team_interest', 'no');
             setupButtonGroup('mobile_visible', 'yes');
-            setupButtonGroup('contact_method', 'call');
+            setupButtonGroup('contact_method', contactMethodVal, true);
 
             // Description word limit logic
             const desc = document.getElementById('description');
             const wordCount = document.getElementById('desc-word-count');
             const wordWarning = document.getElementById('desc-word-warning');
+            const descMinWordError = document.getElementById('desc-minword-error');
             desc.addEventListener('input', function () {
                 let words = desc.value.match(/\b\w+\b/g) || [];
                 if (words.length > 300) {
@@ -245,6 +228,30 @@
                     wordWarning.classList.add('hidden');
                 }
                 wordCount.textContent = words.length + '/300 words';
+                // Hide min word error on input
+                if (words.length >= 20) {
+                    descMinWordError.classList.add('hidden');
+                }
+            });
+
+            // Form validation for contact method
+            const form = document.getElementById('requirementForm');
+            const contactMethodError = document.getElementById('contact-method-error');
+            form.addEventListener('submit', function (e) {
+                const selectedBtns = document.querySelectorAll('.select-btn[data-group="contact_method"].selected');
+                if (selectedBtns.length < 2) {
+                    contactMethodError.classList.remove('hidden');
+                    e.preventDefault();
+                } else {
+                    contactMethodError.classList.add('hidden');
+                }
+                let words = desc.value.match(/\b\w+\b/g) || [];
+                if (words.length < 20) {
+                    descMinWordError.classList.remove('hidden');
+                    e.preventDefault();
+                } else {
+                    descMinWordError.classList.add('hidden');
+                }
             });
         });
     </script>

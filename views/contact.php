@@ -1,5 +1,5 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../config/constants.php';
 ?>
 <!DOCTYPE html>
@@ -12,9 +12,10 @@ require_once __DIR__ . '/../config/constants.php';
     <link rel="stylesheet" href="styles/style.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" />
 
-    <title>RoomLinks | Offical Website</title>
-    <meta name="description" content="Contact RoomLinks for the best rooms and roommates in major and small cities across India. Find your vibeMate today!" />
-    <meta name="keywords" content="contact, rooms, roommates, find room, rent, RoomLinks, vibeMate, rooms in Pune, rooms in Mumbai, rooms in Delhi, rooms in Bangalore, rooms in Hyderabad, rooms in Chennai, rooms in Kolkata, rooms in Ahmedabad, rooms in Jaipur, rooms in Lucknow, rooms in Indore, rooms in Surat, rooms in Bhopal, rooms in Patna, rooms in Nagpur, rooms in Chandigarh, rooms in Noida, rooms in Gurugram, rooms in Thane, rooms in Nashik, PG in Pune, PG in Mumbai, PG in Delhi, flatmates, shared accommodation, hostel, student rooms, working professionals, affordable rooms, single room, double sharing, triple sharing, girls hostel, boys hostel, co-living, rent a room, best rooms, cheap rooms, city rooms, local rooms, room search, room booking, room rental, roommate finder, Pune, Mumbai, Delhi, Bangalore, Hyderabad, Chennai, Kolkata, Ahmedabad, Jaipur, Lucknow, Indore, Surat, Bhopal, Patna, Nagpur, Chandigarh, Noida, Gurugram, Thane, Nashik" />
+    <title>Contact | RoomLinks | Offical Website</title>
+
+    <link rel="icon" type="image/x-icon" href="assets/logo/favicon.ico" />
+
 </head>
 
 <body>

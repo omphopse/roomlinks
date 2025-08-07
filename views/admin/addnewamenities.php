@@ -24,7 +24,9 @@ checkAdminAuth();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="<?php echo APP_URL; ?>/admin-asset/libs/morris.js/morris.css" rel="stylesheet" type="text/css" />
-
+    
+    <link rel="icon" type="image/x-icon" href="<?php echo APP_URL; ?>/admin-asset/images/favicon.ico" />
+    
     <!-- third party css -->
     <link href="<?php echo APP_URL; ?>/admin-asset/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css"
         rel="stylesheet" type="text/css" />
@@ -71,7 +73,7 @@ checkAdminAuth();
                                 <a href="<?php echo APP_URL; ?>/admin/amenities"
                                     style="margin-left: 24px; margin-top: -10px;"
                                     class="btn btn-dark waves-effect waves-light"><i
-                                        class="bx bxs-add-to-queue me-1"></i>Amenities</a>
+                                        class="bx bx-left-arrow-alt me-1"></i>Amenities</a>
                             </div>
                             <div class="col-lg-6">
                                 <div class="d-none d-lg-block">
@@ -100,7 +102,6 @@ checkAdminAuth();
                         <div class="col-lg-6">
                             <div class="card">
                                 <div class="card-body">
-                                    <h4 class="header-title">Add New Amenities</h4>
                                     <div id="amenitiesFormsContainer">
                                         <form class="amenitiesForm" method="POST" enctype="multipart/form-data"
                                             action="<?php echo APP_URL; ?>/admin/addnewamenities">

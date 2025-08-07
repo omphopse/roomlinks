@@ -54,7 +54,7 @@
                     </div>
 
                     <!-- Profile -->
-                    <a href="<?php echo APP_URL; ?>/admin/profile" class="dropdown-item notify-item">
+                    <a href="<?php echo APP_URL; ?>/profile" class="dropdown-item notify-item">
                         <i class="bi bi-person me-2"></i>
                         <span>Profile</span>
                     </a>

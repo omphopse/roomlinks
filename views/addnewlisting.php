@@ -10,26 +10,9 @@
     <link rel="stylesheet" href="styles/hide-scrollbar.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" />
 
-    <title>RoomLinks | Offical Website</title>
+    <title>Add newlisting | RoomLinks | Offical Website</title>
 
-    <meta name="description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta name="author" content="RoomLinks" />
-    <!-- Open Graph / Facebook -->
-    <meta property="og:title" content="RoomLinks | Official Website" />
-    <meta property="og:description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta property="og:image" content="assets/hero-section/description.png" />
-    <meta property="og:url" content="https://roomlinks.in" />
-    <meta property="og:type" content="website" />
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="RoomLinks | Official Website" />
-    <meta name="twitter:description"
-        content="Find the best rooms and roommates with RoomLinks. More than just a roommate, find your vibeMate today!" />
-    <meta name="twitter:image" content="assets/hero-section/description.png" />
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://roomlinks.in" />
+    <link rel="icon" type="image/x-icon" href="assets/logo/favicon.ico" />
 
 </head>
 
@@ -43,7 +26,7 @@
             </p>
             <div class="flex flex-col md:flex-row gap-6 justify-center items-center">
                 <!-- Need Room/Flat Box -->
-                <a href="#"
+                <a href="<?php echo APP_URL; ?>/room"
                     class="flex-1 bg-[#A6F1E0] rounded-xl p-10 shadow-2xl hover:shadow-2xl transition-all duration-200 flex flex-col items-center min-w-[250px] max-w-xs min-h-[340px] max-h-[360px]">
                     <div class="text-left w-full mb-6">
                         <span class="block text-lg font-semibold text-gray-800">Need Room/Flat</span>
@@ -53,7 +36,7 @@
                         class="w-56 h-56 object-contain mx-auto" />
                 </a>
                 <!-- Need Roommate Box -->
-                <a href="#"
+                <a href="<?php echo APP_URL; ?>/roommate"
                     class="flex-1 bg-yellow-100 rounded-xl p-10 shadow-2xl hover:shadow-2xl transition-all duration-200 flex flex-col items-center min-w-[250px] max-w-xs min-h-[340px] max-h-[360px]">
                     <div class="text-left w-full mb-6">
                         <span class="block text-lg font-semibold text-gray-800">Need Roommate</span>

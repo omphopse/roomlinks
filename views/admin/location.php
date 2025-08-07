@@ -6,6 +6,7 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 checkAdminAuth();
 // $locations is passed from controller
+// DEBUG: Output $locations for troubleshooting
 ?>
 
 <!DOCTYPE html>
@@ -17,6 +18,8 @@ checkAdminAuth();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="<?php echo APP_URL; ?>/admin-asset/libs/morris.js/morris.css" rel="stylesheet" type="text/css" />
+
+    <link rel="icon" type="image/x-icon" href="<?php echo APP_URL; ?>/admin-asset/images/favicon.ico" />
 
     <!-- third party css -->
     <link href="<?php echo APP_URL; ?>/admin-asset/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css"
@@ -33,13 +36,7 @@ checkAdminAuth();
     <link href="<?php echo APP_URL; ?>/admin-asset/css/style.min.css" rel="stylesheet" type="text/css">
     <link href="<?php echo APP_URL; ?>/admin-asset/css/icons.min.css" rel="stylesheet" type="text/css">
     <script src="<?php echo APP_URL; ?>/admin-asset/js/config.js"></script>
-    <style>
-        .vibes-img-preview {
-            max-width: 80px;
-            max-height: 80px;
-            border-radius: 8px;
-        }
-    </style>
+    
 </head>
 
 <body>
@@ -99,12 +96,12 @@ checkAdminAuth();
                                         <div class="col-md-2 filter-start_date">
                                             <label for="start_date" class="form-label">Start Date</label>
                                             <input type="date" class="form-control" id="start_date" name="start_date"
-                                                value="<?= htmlspecialchars($_GET['start_date'] ?? date('Y-m-01')) ?>">
+                                                value="<?= htmlspecialchars($_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'))) ?>">
                                         </div>
                                         <div class="col-md-2 filter-end_date">
                                             <label for="end_date" class="form-label">End Date</label>
                                             <input type="date" class="form-control" id="end_date" name="end_date"
-                                                value="<?= htmlspecialchars($_GET['end_date'] ?? date('Y-m-t')) ?>">
+                                                value="<?= htmlspecialchars($_GET['end_date'] ?? date('Y-m-d')) ?>">
                                         </div>
 
                                         <div class="col-md-4 d-flex align-items-end">
@@ -159,8 +156,6 @@ checkAdminAuth();
                                                         </td>
                                                     </tr>
                                                 <?php endforeach; ?>
-                                            <?php else: ?>
-                                                <tr><td colspan="3" class="text-center">No locations found.</td></tr>
                                             <?php endif; ?>
                                         </tbody>
                                     </table>

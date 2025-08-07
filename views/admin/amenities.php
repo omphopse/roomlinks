@@ -27,6 +27,8 @@ $totalAmenities = count($amenities);
 
     <link href="<?php echo APP_URL; ?>/admin-asset/libs/morris.js/morris.css" rel="stylesheet" type="text/css" />
 
+    <link rel="icon" type="image/x-icon" href="<?php echo APP_URL; ?>/admin-asset/images/favicon.ico" />
+
     <!-- third party css -->
     <link href="<?php echo APP_URL; ?>/admin-asset/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css"
         rel="stylesheet" type="text/css" />

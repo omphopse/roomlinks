@@ -1,9 +1,259 @@
-   
-    
 <?php
 require_once __DIR__ . '/../models/Vibes.php';
+
+require_once __DIR__ . '/AuditLogController.php';
+require_once __DIR__ . '/../config/database.php';
 class AdminController
 {
+    // Admin dashboard
+    public function dashboard()
+    {
+        require_once __DIR__ . '/../models/AdminModel.php';
+        $totalUsers = AdminModel::getTotalUsers();
+        $totalListings = AdminModel::getTotalListings();
+        $totalRooms = AdminModel::getTotalRooms();
+        $totalPGs = AdminModel::getTotalPGs();
+        $recentListings = AdminModel::getRecentListings(10);
+        $recentUsers = AdminModel::getRecentUsers(10);
+        include __DIR__ . '/../views/admin/dashboard.php';
+    }
+
+    // Show all users with profile and location info and filters
+    public function showUsers()
+    {
+        require_once __DIR__ . '/../models/AdminModel.php';
+        // Default to current month if not set
+        $start_date = $_GET['start_date'] ?? date('Y-m-01');
+        $end_date = $_GET['end_date'] ?? date('Y-m-t');
+        $filters = [
+            'gender' => $_GET['gender'] ?? 'any',
+            'who_are_you' => $_GET['who_are_you'] ?? 'any',
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+        ];
+        $users = AdminModel::getUsersWithProfileAndLocation($filters);
+        include __DIR__ . '/../views/admin/users.php';
+    }
+
+    // Show all listings with owner info and filters
+    public function showListings()
+    {
+        require_once __DIR__ . '/../models/AdminModel.php';
+        // Default to current month if not set
+        $start_date = $_GET['start_date'] ?? date('Y-m-01');
+        $end_date = $_GET['end_date'] ?? date('Y-m-t');
+        $filters = [
+            'role' => $_GET['role'] ?? 'any',
+            'gender' => $_GET['gender'] ?? 'any',
+            'occupancy' => $_GET['occupancy'] ?? 'any',
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+        ];
+        $listings = AdminModel::getListingsWithOwner($filters);
+        include __DIR__ . '/../views/admin/listings.php';
+    }
+
+    // Show all reports for admin
+    public function showReports()
+    {
+        require_once __DIR__ . '/../models/Report.php';
+        require_once __DIR__ . '/../models/UserModel.php';
+        $pdo = getPDO();
+        $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
+        $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
+        $stmt = $pdo->prepare('SELECT * FROM report WHERE DATE(created_at) >= ? AND DATE(created_at) <= ? ORDER BY created_at DESC');
+        $stmt->execute([$start_date, $end_date]);
+        $reportsRaw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $userModel = new UserModel();
+        $reports = [];
+        foreach ($reportsRaw as $report) {
+            // Get reporter email
+            $userStmt = $pdo->prepare('SELECT email FROM user WHERE id = ? LIMIT 1');
+            $userStmt->execute([$report['user_id']]);
+            $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+            $report['user_email'] = $user ? $user['email'] : '';
+            $reports[] = $report;
+        }
+        include __DIR__ . '/../views/admin/roport.php';
+    }
+
+    // Edit report status
+    public function editReportStatus()
+    {
+        require_once __DIR__ . '/../models/Report.php';
+        if (isset($_POST['report_id'], $_POST['status'])) {
+            $report_id = intval($_POST['report_id']);
+            $status = $_POST['status'];
+            if (in_array($status, ['reported', 'processing', 'resolved'])) {
+                $success = Report::updateStatus($report_id, $status);
+                if ($success) {
+                    // Log to audit_logs using AuditLogController
+                    $pdo = getPDO();
+                    $auditLogController = new AuditLogController($pdo);
+                    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                    $adminId = $_SESSION['user_id'] ?? null;
+                    $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                    $details = json_encode([
+                        'action' => 'editReportStatus',
+                        'reportId' => $report_id,
+                        'newStatus' => $status
+                    ]);
+                    $auditLogController->logAction($adminId, $userRole, 'UPDATE', 'report', $report_id, $details, $ip);
+                    $_SESSION['success'] = 'Report status updated.';
+                } else {
+                    $_SESSION['error'] = 'Failed to update status.';
+                }
+            } else {
+                $_SESSION['error'] = 'Invalid status.';
+            }
+        } else {
+            $_SESSION['error'] = 'Invalid request.';
+        }
+        header('Location: ' . APP_URL . '/admin/reports');
+        exit();
+    }
+
+    // Show all property highlights (for highlights.php)
+    public function showHighlights()
+    {
+        require_once __DIR__ . '/../models/PropertyHighlights.php';
+        $highlightsModel = new PropertyHighlights();
+        $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
+        $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
+        $highlights = $highlightsModel->getHighlightsByDate($start_date, $end_date);
+        include __DIR__ . '/../views/admin/highlights.php';
+    }
+
+    // Edit a property highlight
+    public function editHighlight()
+    {
+        require_once __DIR__ . '/../models/PropertyHighlights.php';
+        $highlightsModel = new PropertyHighlights();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['highlight_id'], $_POST['highlight_name'])) {
+            $id = intval($_POST['highlight_id']);
+            $name = trim($_POST['highlight_name']);
+            if ($name !== '') {
+                // Check for duplicate name (exclude current id)
+                if ($highlightsModel->highlightExistsForOtherId($name, $id)) {
+                    $_SESSION['error'] = 'Highlight name already exists.';
+                } else {
+                    $highlightsModel->updateHighlight($id, $name);
+                    // Log to audit_logs using AuditLogController
+                    $pdo = getPDO();
+                    $auditLogController = new AuditLogController($pdo);
+                    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                    $adminId = $_SESSION['user_id'] ?? null;
+                    $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                    $details = json_encode([
+                        'action' => 'editHighlight',
+                        'highlightId' => $id,
+                        'newName' => $name
+                    ]);
+                    $auditLogController->logAction($adminId, $userRole, 'UPDATE', 'property_highlights', $id, $details, $ip);
+                    $_SESSION['success'] = 'Highlight updated successfully!';
+                }
+            } else {
+                $_SESSION['error'] = 'Highlight name cannot be empty!';
+            }
+        }
+        header('Location: ' . APP_URL . '/admin/highlights');
+        exit();
+    }
+
+    // Delete a property highlight
+    public function deleteHighlight()
+    {
+        require_once __DIR__ . '/../models/PropertyHighlights.php';
+        $highlightsModel = new PropertyHighlights();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['highlight_id'])) {
+            $id = intval($_POST['highlight_id']);
+            $highlightsModel->deleteHighlight($id);
+            // Log to audit_logs using AuditLogController
+            $pdo = getPDO();
+            $auditLogController = new AuditLogController($pdo);
+            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+            $adminId = $_SESSION['user_id'] ?? null;
+            $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+            $details = json_encode([
+                'action' => 'deleteHighlight',
+                'highlightId' => $id
+            ]);
+            $auditLogController->logAction($adminId, $userRole, 'DELETE', 'property_highlights', $id, $details, $ip);
+            $_SESSION['success'] = 'Highlight deleted successfully!';
+        } else {
+            $_SESSION['error'] = 'Invalid request.';
+        }
+        header('Location: ' . APP_URL . '/admin/highlights');
+        exit();
+    }
+
+    // Add new property highlight
+    public function addPropertyHighlight()
+    {
+        require_once __DIR__ . '/../models/PropertyHighlights.php';
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['highlight_name'])) {
+            $names = array_map('trim', $_POST['highlight_name']);
+            $names = array_filter($names, function ($n) {
+                return !empty($n);
+            });
+            if (!empty($names)) {
+                $highlightsModel = new PropertyHighlights();
+                $added = [];
+                $duplicates = [];
+                foreach ($names as $name) {
+                    if ($highlightsModel->highlightExists($name)) {
+                        $duplicates[] = $name;
+                    } else {
+                        if ($highlightsModel->addPropertyHighlight($name)) {
+                            $added[] = $name;
+                            // Log to audit_logs using AuditLogController
+                            $pdo = getPDO();
+                            $auditLogController = new AuditLogController($pdo);
+                            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                            $adminId = $_SESSION['user_id'] ?? null;
+                            $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                            $details = json_encode([
+                                'action' => 'addPropertyHighlight',
+                                'highlightName' => $name
+                            ]);
+                            // Get last inserted ID if possible
+                            if (method_exists($highlightsModel, 'getLastInsertId')) {
+                                $highlightId = $highlightsModel->getLastInsertId();
+                            } else {
+                                $highlightId = null;
+                            }
+                            $auditLogController->logAction($adminId, $userRole, 'CREATE', 'property_highlights', $highlightId, $details, $ip);
+                        }
+                    }
+                }
+                if (!empty($added)) {
+                    $_SESSION['success'] = 'Highlights added successfully!';
+                }
+                if (!empty($duplicates)) {
+                    $_SESSION['error'] = 'Some highlights already exist: ' . implode(', ', $duplicates);
+                }
+                if (empty($added) && empty($duplicates)) {
+                    $_SESSION['error'] = 'Failed to add highlights.';
+                }
+            } else {
+                $_SESSION['error'] = 'Please enter at least one highlight.';
+            }
+            header('Location: ' . APP_URL . '/admin/addhighlights');
+            exit();
+        }
+    }
+
+    // Show all property highlights
+    public function showAddHighlightsPage()
+    {
+        require_once __DIR__ . '/../models/PropertyHighlights.php';
+        $highlightsModel = new PropertyHighlights();
+        $highlights = $highlightsModel->getPropertyHighlights();
+        include __DIR__ . '/../views/admin/addhighlights.php';
+    }
     private $userModel;
 
     public function __construct($userModel = null)
@@ -15,50 +265,29 @@ class AdminController
         $this->userModel = $userModel;
     }
 
-    public function login()
-    {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $email = $_POST['email'];
-            $password = $_POST['password'];
-
-            $user = $this->userModel->login($email, $password);
-
-            if ($user) {
-                // Start session
-                session_regenerate_id(true);
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['user_role'] = $user['role'];
-                $_SESSION['logged_in'] = true;
-
-                // Redirect to admin dashboard only
-                header('Location:' . APP_URL . '/admin/dashboard');
-                exit();
-            } else {
-                $_SESSION['error'] = 'Invalid email or password';
-                // Redirect back to login page
-                header('Location: ' . APP_URL . '/admin-login');
-                exit();
-            }
-        }
-        // For GET requests, do nothing (let the view render the form)
-    }
 
     public function logout()
     {
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
+        // Clear persistent login cookie and DB token
+        require_once __DIR__ . '/../helpers/PersistentLogin.php';
+        $persistentLogin = new PersistentLogin();
+        $persistentLogin->clearToken();
         // Unset all session variables
         $_SESSION = array();
         // Destroy session cookie if exists
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params["path"],
+                $params["domain"],
+                $params["secure"],
+                $params["httponly"]
             );
         }
         // Destroy session
@@ -101,16 +330,36 @@ class AdminController
     }
 
     // Vibes Management
-
-    public function addVibes() {
-        session_start();
-        $vibesModel = new Vibes();
+    public function addVibes()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        $db = getPDO();
+        $vibesModel = new Vibes($db);
         $results = $vibesModel->addVibes($_POST, $_FILES);
         $success_msgs = [];
         $error_msgs = [];
         foreach ($results as $res) {
             if (!empty($res['success'])) {
                 $success_msgs[] = $res['message'];
+                // Log to audit_logs using AuditLogController
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'addVibes',
+                    'vibeData' => $res
+                ]);
+                // If Vibes model provides last insert ID, use it
+                if (isset($res['id'])) {
+                    $vibeId = $res['id'];
+                } else {
+                    $vibeId = null;
+                }
+                $auditLogController->logAction($adminId, $userRole, 'CREATE', 'vibes', $vibeId, $details, $ip);
             } else {
                 $error_msgs[] = $res['message'];
             }
@@ -121,13 +370,17 @@ class AdminController
         if ($error_msgs) {
             $_SESSION['error'] = implode('<br>', $error_msgs);
         }
-        header('Location: '.APP_URL.'/admin/addnewvibes');
+        header('Location: ' . APP_URL . '/admin/addnewvibes');
         exit;
     }
 
-    public function showVibes() {
-        session_start();
-        $vibesModel = new Vibes();
+    public function showVibes()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        $db = getPDO();
+        $vibesModel = new Vibes($db);
         // Use start_date and end_date from GET, fallback to current month
         $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
         $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
@@ -136,15 +389,32 @@ class AdminController
         include __DIR__ . '/../views/admin/vibes.php';
     }
 
-    public function editVibe() {
-        session_start();
-        $vibesModel = new Vibes();
+    public function editVibe()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        $db = getPDO();
+        $vibesModel = new Vibes($db);
         $id = $_POST['vibe_id'] ?? null;
         $name = $_POST['vibe_name'] ?? '';
         $image = isset($_FILES['vibe_image']) ? $_FILES['vibe_image'] : null;
         if ($id && $name) {
             $success = $vibesModel->updateVibe($id, $name, $image);
             if ($success) {
+                // Log to audit_logs using AuditLogController
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'editVibe',
+                    'vibeId' => $id,
+                    'newName' => $name,
+                    'image' => $image
+                ]);
+                $auditLogController->logAction($adminId, $userRole, 'UPDATE', 'vibes', $id, $details, $ip);
                 $_SESSION['success'] = 'Vibe updated successfully!';
             } else {
                 $_SESSION['error'] = 'Failed to update vibe.';
@@ -152,17 +422,34 @@ class AdminController
         } else {
             $_SESSION['error'] = 'Missing required fields.';
         }
-        header('Location: '.APP_URL.'/admin/vibes');
+        header('Location: ' . APP_URL . '/admin/vibes');
         exit;
     }
 
-    public function deleteVibe() {
-        session_start();
-        $vibesModel = new Vibes();
+    public function deleteVibe()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        $db = getPDO();
+        $vibesModel = new Vibes($db);
         $id = $_POST['vibe_id'] ?? null;
         if ($id) {
             $success = $vibesModel->deleteVibe($id);
             if ($success) {
+                // Log to audit_logs using AuditLogController
+                require_once __DIR__ . '/AuditLogController.php';
+                require_once __DIR__ . '/../config/database.php';
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'deleteVibe',
+                    'vibeId' => $id
+                ]);
+                $auditLogController->logAction($adminId, $userRole, 'DELETE', 'vibes', $id, $details, $ip);
                 $_SESSION['success'] = 'Vibe deleted successfully!';
             } else {
                 $_SESSION['error'] = 'Failed to delete vibe.';
@@ -170,12 +457,15 @@ class AdminController
         } else {
             $_SESSION['error'] = 'Missing vibe ID.';
         }
-        header('Location: '.APP_URL.'/admin/vibes');
+        header('Location: ' . APP_URL . '/admin/vibes');
         exit;
     }
 
-    public function addNewAmenities() {
-        session_start();
+    public function addNewAmenities()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
         require_once __DIR__ . '/../models/Amenities.php';
         $amenitiesModel = new Amenities();
         $results = $amenitiesModel->addAmenities($_POST, $_FILES);
@@ -184,6 +474,23 @@ class AdminController
         foreach ($results as $res) {
             if (!empty($res['success'])) {
                 $success_msgs[] = $res['message'];
+                // Log to audit_logs using AuditLogController
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'addNewAmenities',
+                    'amenityData' => $res
+                ]);
+                // If Amenities model provides last insert ID, use it
+                if (isset($res['id'])) {
+                    $amenityId = $res['id'];
+                } else {
+                    $amenityId = null;
+                }
+                $auditLogController->logAction($adminId, $userRole, 'CREATE', 'amenities', $amenityId, $details, $ip);
             } else {
                 $error_msgs[] = $res['message'];
             }
@@ -194,12 +501,15 @@ class AdminController
         if ($error_msgs) {
             $_SESSION['error'] = implode('<br>', $error_msgs);
         }
-        header('Location: '.APP_URL.'/admin/addnewamenities');
+        header('Location: ' . APP_URL . '/admin/addnewamenities');
         exit;
     }
 
-    public function showAmenities() {
-        session_start();
+    public function showAmenities()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
         require_once __DIR__ . '/../models/Amenities.php';
         $amenitiesModel = new Amenities();
         $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
@@ -209,8 +519,11 @@ class AdminController
         include __DIR__ . '/../views/admin/amenities.php';
     }
 
-    public function editAmenity() {
-        session_start();
+    public function editAmenity()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
         require_once __DIR__ . '/../models/Amenities.php';
         $amenitiesModel = new Amenities();
         $id = $_POST['amenity_id'] ?? null;
@@ -220,18 +533,36 @@ class AdminController
             $success = $amenitiesModel->updateAmenity($id, $name, $image);
             if ($success) {
                 $_SESSION['success'] = 'Amenity updated successfully!';
+                // Log to audit_logs using AuditLogController
+                require_once __DIR__ . '/AuditLogController.php';
+                require_once __DIR__ . '/../config/database.php';
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'editAmenity',
+                    'amenityId' => $id,
+                    'newName' => $name,
+                    'image' => $image
+                ]);
+                $auditLogController->logAction($adminId, $userRole, 'UPDATE', 'amenities', $id, $details, $ip);
             } else {
                 $_SESSION['error'] = 'Failed to update amenity.';
             }
         } else {
             $_SESSION['error'] = 'Missing required fields.';
         }
-        header('Location: '.APP_URL.'/admin/amenities');
+        header('Location: ' . APP_URL . '/admin/amenities');
         exit;
     }
 
-    public function deleteAmenity() {
-        session_start();
+    public function deleteAmenity()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
         require_once __DIR__ . '/../models/Amenities.php';
         $amenitiesModel = new Amenities();
         $id = $_POST['amenity_id'] ?? null;
@@ -239,18 +570,32 @@ class AdminController
             $success = $amenitiesModel->deleteAmenity($id);
             if ($success) {
                 $_SESSION['success'] = 'Amenity deleted successfully!';
+                // Log to audit_logs using AuditLogController
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'deleteAmenity',
+                    'amenityId' => $id
+                ]);
+                $auditLogController->logAction($adminId, $userRole, 'DELETE', 'amenities', $id, $details, $ip);
             } else {
                 $_SESSION['error'] = 'Failed to delete amenity.';
             }
         } else {
             $_SESSION['error'] = 'Missing amenity ID.';
         }
-        header('Location: '.APP_URL.'/admin/amenities');
+        header('Location: ' . APP_URL . '/admin/amenities');
         exit;
     }
 
-    public function addProfilePicture() {
-        session_start();
+    public function addProfilePicture()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $genders = isset($_POST['gender']) ? $_POST['gender'] : [];
             $files = isset($_FILES['profile_image']) ? $_FILES['profile_image'] : [];
@@ -262,6 +607,23 @@ class AdminController
             foreach ($results as $res) {
                 if (!empty($res['success'])) {
                     $success_msgs[] = $res['message'];
+                    // Log to audit_logs using AuditLogController
+                    $pdo = getPDO();
+                    $auditLogController = new AuditLogController($pdo);
+                    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                    $adminId = $_SESSION['user_id'] ?? null;
+                    $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                    $details = json_encode([
+                        'action' => 'addProfilePicture',
+                        'profilePictureData' => $res
+                    ]);
+                    // If ProfilePicture model provides last insert ID, use it
+                    if (isset($res['id'])) {
+                        $profilePictureId = $res['id'];
+                    } else {
+                        $profilePictureId = null;
+                    }
+                    $auditLogController->logAction($adminId, $userRole, 'CREATE', 'profile_pictures', $profilePictureId, $details, $ip);
                 } else {
                     $error_msgs[] = $res['message'];
                 }
@@ -277,8 +639,11 @@ class AdminController
         }
     }
 
-    public function showProfilePictures() {
-        session_start();
+    public function showProfilePictures()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
         require_once __DIR__ . '/../models/ProfilePicture.php';
         $profilePictureModel = new ProfilePicture();
         $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
@@ -287,8 +652,11 @@ class AdminController
         include __DIR__ . '/../views/admin/profilepicture.php';
     }
 
-    public function deleteProfilePicture() {
-        session_start();
+    public function deleteProfilePicture()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
         require_once __DIR__ . '/../models/ProfilePicture.php';
         $profilePictureModel = new ProfilePicture();
         $id = $_POST['profile_picture_id'] ?? null;
@@ -296,6 +664,17 @@ class AdminController
             $success = $profilePictureModel->deleteProfilePicture($id);
             if ($success) {
                 $_SESSION['success'] = 'Profile picture deleted successfully!';
+                // Log to audit_logs using AuditLogController
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'deleteProfilePicture',
+                    'profilePictureId' => $id
+                ]);
+                $auditLogController->logAction($adminId, $userRole, 'DELETE', 'profile_pictures', $id, $details, $ip);
             } else {
                 $_SESSION['error'] = 'Failed to delete profile picture.';
             }
@@ -307,18 +686,32 @@ class AdminController
     }
 
     // Location Management
-    public function addLocations() {
+    public function addLocations()
+    {
         require_once __DIR__ . '/../models/Location.php';
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['location_name'])) {
             $locations = array_map('trim', $_POST['location_name']);
-            $locations = array_filter($locations, function($loc) { return !empty($loc); });
+            $locations = array_filter($locations, function ($loc) {
+                return !empty($loc);
+            });
             if (!empty($locations)) {
                 $db = getPDO();
                 $locationModel = new Location($db);
                 $locationModel->addLocations($locations);
+                // Log to audit_logs using AuditLogController
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'addLocations',
+                    'locations' => $locations
+                ]);
+                $auditLogController->logAction($adminId, $userRole, 'CREATE', 'locations', null, $details, $ip);
                 $_SESSION['success'] = 'Locations added successfully!';
             } else {
                 $_SESSION['error'] = 'Please enter at least one location.';
@@ -328,17 +721,21 @@ class AdminController
         }
     }
 
-     // Show all locations
-    public function showLocations() {
+    // Show all locations
+    public function showLocations()
+    {
         require_once __DIR__ . '/../models/Location.php';
         $db = getPDO();
         $locationModel = new Location($db);
-        $locations = $locationModel->getAllLocations();
+        $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
+        $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
+        $locations = $locationModel->getLocationsByDate($start_date, $end_date);
         include __DIR__ . '/../views/admin/location.php';
     }
 
     // Edit a location
-    public function editLocation() {
+    public function editLocation()
+    {
         require_once __DIR__ . '/../models/Location.php';
         $db = getPDO();
         $locationModel = new Location($db);
@@ -348,6 +745,18 @@ class AdminController
             if ($name !== '') {
                 $locationModel->updateLocation($id, $name);
                 $_SESSION['success'] = 'Location updated successfully!';
+                // Log to audit_logs using AuditLogController
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'editLocation',
+                    'locationId' => $id,
+                    'newName' => $name
+                ]);
+                $auditLogController->logAction($adminId, $userRole, 'UPDATE', 'locations', $id, $details, $ip);
             } else {
                 $_SESSION['error'] = 'Location name cannot be empty!';
             }
@@ -357,7 +766,8 @@ class AdminController
     }
 
     // Delete a location
-    public function deleteLocation() {
+    public function deleteLocation()
+    {
         require_once __DIR__ . '/../models/Location.php';
         $db = getPDO();
         $locationModel = new Location($db);
@@ -365,10 +775,104 @@ class AdminController
             $id = intval($_POST['location_id']);
             $locationModel->deleteLocation($id);
             $_SESSION['success'] = 'Location deleted successfully!';
+            // Log to audit_logs using AuditLogController
+            require_once __DIR__ . '/AuditLogController.php';
+            require_once __DIR__ . '/../config/database.php';
+            $pdo = getPDO();
+            $auditLogController = new AuditLogController($pdo);
+            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+            $adminId = $_SESSION['user_id'] ?? null;
+            $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+            $details = json_encode([
+                'action' => 'deleteLocation',
+                'locationId' => $id
+            ]);
+            $auditLogController->logAction($adminId, $userRole, 'DELETE', 'locations', $id, $details, $ip);
         } else {
             $_SESSION['error'] = 'Invalid request.';
         }
         header('Location: ' . APP_URL . '/admin/locations');
+        exit();
+    }
+
+    // Show all feedbacks for admin
+    public function showFeedbacks()
+    {
+        require_once __DIR__ . '/../models/UserModel.php';
+        $userModel = new UserModel();
+        $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
+        $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
+        $feedbacks = $userModel->getFeedbacksByDate($start_date, $end_date);
+        include __DIR__ . '/../views/admin/feedback.php';
+    }
+
+    // Edit feedback (status, subject, feedback)
+    public function editFeedback()
+    {
+        require_once __DIR__ . '/../models/UserModel.php';
+        $userModel = new UserModel();
+        if (isset($_POST['feedback_id'], $_POST['subject'], $_POST['feedback'], $_POST['status'])) {
+            $id = intval($_POST['feedback_id']);
+            $subject = trim($_POST['subject']);
+            $feedback = trim($_POST['feedback']);
+            $status = $_POST['status'];
+            $success = $userModel->updateFeedback($id, $subject, $feedback, $status);
+            if ($success) {
+                $_SESSION['success'] = 'Feedback updated.';
+                // Log to audit_logs using AuditLogController
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'editFeedback',
+                    'feedbackId' => $id,
+                    'subject' => $subject,
+                    'feedback' => $feedback,
+                    'status' => $status
+                ]);
+                $auditLogController->logAction($adminId, $userRole, 'UPDATE', 'feedback', $id, $details, $ip);
+            } else {
+                $_SESSION['error'] = 'Failed to update feedback.';
+            }
+        } else {
+            $_SESSION['error'] = 'Invalid request.';
+        }
+        header('Location: ' . APP_URL . '/admin/feedback');
+        exit();
+    }
+
+    // Delete feedback
+    public function deleteFeedback()
+    {
+        require_once __DIR__ . '/../models/UserModel.php';
+        $userModel = new UserModel();
+        if (isset($_POST['feedback_id'])) {
+            $id = intval($_POST['feedback_id']);
+            $success = $userModel->deleteFeedback($id);
+            if ($success) {
+                $_SESSION['success'] = 'Feedback deleted.';
+                // Log to audit_logs using AuditLogController
+                require_once __DIR__ . '/AuditLogController.php';
+                require_once __DIR__ . '/../config/database.php';
+                $pdo = getPDO();
+                $auditLogController = new AuditLogController($pdo);
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $adminId = $_SESSION['user_id'] ?? null;
+                $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
+                $details = json_encode([
+                    'action' => 'deleteFeedback',
+                    'feedbackId' => $id
+                ]);
+                $auditLogController->logAction($adminId, $userRole, 'DELETE', 'feedback', $id, $details, $ip);
+            } else {
+                $_SESSION['error'] = 'Failed to delete feedback.';
+            }
+        } else {
+            $_SESSION['error'] = 'Invalid request.';
+        }
+        header('Location: ' . APP_URL . '/admin/feedback');
         exit();
     }
 }

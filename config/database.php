@@ -4,9 +4,9 @@ define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'rooms');
-// define('DB_USER', 'uxikigvn_om');
-// define('DB_PASS', 'omphopse@#123');
-// define('DB_NAME', 'uxikigvn_roomlinks');
+// define('DB_USER', 'u267490263_roomlinks');
+// define('DB_PASS', 'Y32^zdXEi]8');
+// define('DB_NAME', 'u267490263_roomlinks');
 
 // Add PDO connection for models
 function getPDO() {

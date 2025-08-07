@@ -2,7 +2,6 @@
 // routes/web.php
 require_once __DIR__ . '/../controllers/HomeController.php';
 require_once __DIR__ . '/../config/constants.php';
-require_once __DIR__ . '/../controllers/ViewController.php';
 require_once __DIR__ . '/../controllers/ContactController.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../controllers/AdminController.php';
@@ -30,6 +29,16 @@ if ($basePath !== '' && substr($request, 0, strlen($basePath)) === $basePath) {
 
 switch ($request) {
 
+    case '/register':
+        $controller = new UserController();
+        $controller->register();
+        break;
+
+    case '/login':
+        $controller = new UserController();
+        $controller->login();
+        break;
+
     case '':
     case '/':
     case '/home':
@@ -37,23 +46,45 @@ switch ($request) {
         $controller->index();
         break;
 
-    case '/submit-message':
+    case '/profile':
+        require_once __DIR__ . '/../views/profile.php';
+        break;
+
+    case '/contact':
+        require_once __DIR__ . '/../views/contact.php';
+        break;
+
+    case '/more':
+        require_once __DIR__ . '/../views/more.php';
+        break;
+
+    case '/mylistings':
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: ' . APP_URL . '/login');
+            exit;
+        }
+        $controller = new UserController();
+        $controller->myListings();
+        break;
+
+    case '/add-roommatelisting':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $controller = new HomeController();
-            $controller->submitMessage();
+            $controller = new UserController();
+            $controller->addroommatelisting();
         } else {
             http_response_code(405);
             echo "Method Not Allowed";
         }
         break;
 
-    case '/view':
-        $controller = new ViewController();
-        $controller->show();
+    case '/privacy-policy':
+        require_once __DIR__ . '/../views/privacy-policy.php';
         break;
 
-    case '/contact':
-        require_once __DIR__ . '/../views/contact.php';
+    case '/termsandconditions':
+        require_once __DIR__ . '/../views/termsandconditions.php';
         break;
 
     case '/listings':
@@ -64,9 +95,6 @@ switch ($request) {
         require_once __DIR__ . '/../views/addnewlisting.php';
         break;
 
-    case '/profile':
-        require_once __DIR__ . '/../views/profile.php';
-        break;
 
     case '/room':
         require_once __DIR__ . '/../views/room.php';
@@ -76,30 +104,83 @@ switch ($request) {
         require_once __DIR__ . '/../views/roommate.php';
         break;
 
+    case '/update-roomlisting':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (session_status() === PHP_SESSION_NONE)
+                session_start();
+            $user_id = $_SESSION['user_id'] ?? null;
+            $user_email = $_SESSION['email'] ?? null;
+            $controller = new UserController();
+            $amenities = method_exists($controller, 'getAmenities') ? $controller->getAmenities() : [];
+            $propertyHighlights = method_exists($controller, 'getPropertyHighlights') ? $controller->getPropertyHighlights() : [];
+            $controller->updateRoomListing($_POST, $_FILES, $user_id, $user_email, $amenities, $propertyHighlights, $_POST['id'] ?? null);
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/add-roomlisting':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (session_status() === PHP_SESSION_NONE)
+                session_start();
+            $user_id = $_SESSION['user_id'] ?? null;
+            $user_email = $_SESSION['email'] ?? null;
+            $controller = new UserController();
+            $controller->addRoomListing($_POST, $_FILES, $user_id, $user_email, $amenities, $propertyHighlights, $_POST['id'] ?? null);
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/update-roommatelisting':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new UserController();
+            $controller->updateRoommatelisting();
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/deletelisting':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new UserController();
+            $listingId = $_POST['listing_id'] ?? null;
+            if ($listingId) {
+                $controller->deleteListing($listingId);
+            } else {
+                http_response_code(400);
+                echo "Missing listing ID.";
+            }
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
     case '/roomlisting':
+        // Validate and pass the GET parameter 'id' to roomlisting.php
+        $listingId = isset($_GET['id']) ? intval($_GET['id']) : 0;
+        if (!$listingId) {
+            http_response_code(404);
+            require_once __DIR__ . '/../404.php';
+            break;
+        }
+        require_once __DIR__ . '/../models/UserModel.php';
+        $userModel = new UserModel();
+        $listing = $userModel->getListingById($listingId);
+        if (!$listing) {
+            http_response_code(404);
+            require_once __DIR__ . '/../404.php';
+            break;
+        }
         require_once __DIR__ . '/../views/roomlisting.php';
         break;
 
     case '/roommatelisting':
         require_once __DIR__ . '/../views/roommatelisting.php';
-        break;
-
-    case '/vibes':
-        // Vibes update POST route
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_vibes'])) {
-            require_once __DIR__ . '/../controllers/UserController.php';
-            $controller = new UserController();
-            // Validate vibes selection
-            if (isset($_POST['vibes']) && is_array($_POST['vibes']) && count($_POST['vibes']) >= 5) {
-                $controller->updateVibes();
-                $_SESSION['success'] = 'Vibes updated successfully!';
-            } else {
-                $_SESSION['error'] = 'Please select at least 5 vibes.';
-            }
-            header('Location: '.APP_URL.'/vibes');
-            exit();
-        }
-        require_once __DIR__ . '/../views/vibes.php';
         break;
 
     case '/complete-profile':
@@ -117,19 +198,96 @@ switch ($request) {
         }
         break;
 
-    case '/admin-login':
+    case '/vibes':
+        // Vibes update POST route
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_vibes'])) {
+            require_once __DIR__ . '/../controllers/UserController.php';
+            $controller = new UserController();
+            // Validate vibes selection
+            if (isset($_POST['vibes']) && is_array($_POST['vibes']) && count($_POST['vibes']) >= 5) {
+                $controller->updateVibes();
+                $_SESSION['success'] = 'Vibes updated successfully!';
+            } else {
+                $_SESSION['error'] = 'Please select at least 5 vibes.';
+            }
+            header('Location: ' . APP_URL . '/vibes');
+            exit();
+        }
+        require_once __DIR__ . '/../views/vibes.php';
+        break;
+
+
+
+    case '/admin/highlights':
+        checkAdminAuth();
+        $controller = new AdminController(new UserModel());
+        $controller->showHighlights();
+        break;
+
+    case '/admin/highlights/edit':
+        checkAdminAuth();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $userModel = new UserModel();
-            $adminController = new AdminController($userModel);
-            $adminController->login();
+            $controller = new AdminController(new UserModel());
+            $controller->editHighlight();
         } else {
-            require_once __DIR__ . '/../views/auth/login.php';
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/admin/highlights/delete':
+        checkAdminAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new AdminController(new UserModel());
+            $controller->deleteHighlight();
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+    case '/admin/addhighlights':
+        checkAdminAuth();
+        $controller = new AdminController(new UserModel());
+        $controller->showAddHighlightsPage();
+        break;
+
+    case '/admin/addpropertyhighlight':
+        checkAdminAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new AdminController(new UserModel());
+            $controller->addPropertyHighlight();
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/admin/reports':
+        checkAdminAuth();
+        $controller = new AdminController(new UserModel());
+        $controller->showReports();
+        break;
+
+    case '/admin/reports/editstatus':
+        checkAdminAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new AdminController(new UserModel());
+            $controller->editReportStatus();
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
         }
         break;
 
     case '/admin/dashboard':
         checkAdminAuth();
-        require_once __DIR__ . '/../views/admin/dashboard.php';
+        $controller = new AdminController(new UserModel());
+        $controller->dashboard();
+        break;
+
+    case '/admin/contact':
+        checkAdminAuth();
+        require_once __DIR__ . '/../views/admin/contact.php';
         break;
 
     case '/admin/addprofilepictures':
@@ -285,14 +443,64 @@ switch ($request) {
         }
         break;
 
-    case '/register':
-        $controller = new UserController();
-        $controller->register();
+    case '/admin/feedback':
+        checkAdminAuth();
+        $controller = new AdminController();
+        $controller->showFeedbacks();
         break;
 
-    case '/login':
-        $controller = new UserController();
-        $controller->login();
+    case '/admin/feedback/edit':
+        checkAdminAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new AdminController();
+            $controller->editFeedback();
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/admin/feedback/delete':
+        checkAdminAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new AdminController();
+            $controller->deleteFeedback();
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/admin/delete':
+        checkAdminAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new UserController();
+            $controller->admindeleteUser();
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/admin/users':
+        checkAdminAuth();
+        $controller = new AdminController(new UserModel());
+        $controller->showUsers();
+        break;
+
+    case '/admin/listings':
+        checkAdminAuth();
+        $controller = new AdminController(new UserModel());
+        $controller->showListings();
+        break;
+
+    case '/feedback':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new UserController();
+            $controller->submitFeedback();
+        } else {
+            require_once __DIR__ . '/../views/feedback.php';
+        }
         break;
 
     default:

@@ -29,37 +29,72 @@
             </li>
 
             <li class="menu-item">
+                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/users">
+                    <span class="menu-icon"><i class="bx bx-user-circle"></i></span>
+                    <span class="menu-text"> users </span>
+                </a>
+            </li>
+
+            <li class="menu-item">
+                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/listings">
+                    <span class="menu-icon"><i class="bx bx-building-house"></i></span>
+                    <span class="menu-text"> listings </span>
+                </a>
+            </li>
+
+            <li class="menu-item">
+                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/contact">
+                    <span class="menu-icon"><i class="bx bxs-contact"></i></span>
+                    <span class="menu-text"> Contact </span>
+                </a>
+            </li>
+
+            <li class="menu-item">
+                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/reports">
+                    <span class="menu-icon"><i class="bx bx-support"></i></span>
+                    <span class="menu-text"> Reports </span>
+                </a>
+            </li>
+
+            <li class="menu-item">
+                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/highlights">
+                    <span class="menu-icon"><i class="bx bx-building-house"></i></span>
+                    <span class="menu-text"> Highlights </span>
+                </a>
+            </li>
+
+            <li class="menu-item">
                 <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/locations">
-                    <span class="menu-icon"><i class="bx bx-message-rounded-dots"></i></span>
+                    <span class="menu-icon"><i class="bx bx-map"></i></span>
                     <span class="menu-text"> Locations </span>
                 </a>
             </li>
 
             <li class="menu-item">
                 <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/profilepictures">
-                    <span class="menu-icon"><i class="bx bx-message-rounded-dots"></i></span>
+                    <span class="menu-icon"><i class="bx bx-user"></i></span>
                     <span class="menu-text"> Profile Picture </span>
                 </a>
             </li>
 
             <li class="menu-item">
                 <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/vibes">
-                    <span class="menu-icon"><i class="bx bx-message-rounded-dots"></i></span>
+                    <span class="menu-icon"><i class="bx bxs-heart"></i></span>
                     <span class="menu-text"> Vibes </span>
                 </a>
             </li>
 
             <li class="menu-item">
                 <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/amenities">
-                    <span class="menu-icon"><i class="bx bx-message-rounded-dots"></i></span>
+                    <span class="menu-icon"><i class="bx bxs-building"></i></span>
                     <span class="menu-text"> amenities </span>
                 </a>
             </li>
 
             <li class="menu-item">
-                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/views">
-                    <span class="menu-icon"><i class="bx bx-message-rounded-dots"></i></span>
-                    <span class="menu-text"> Views </span>
+                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/feedback">
+                    <span class="menu-icon"><i class="bx bx-conversation"></i></span>
+                    <span class="menu-text"> Feedback </span>
                 </a>
             </li>
 

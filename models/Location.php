@@ -1,6 +1,12 @@
-    
 <?php
 class Location {
+    // ...existing code...
+    // Get locations by date range
+    public function getLocationsByDate($start_date, $end_date) {
+        $stmt = $this->conn->prepare("SELECT * FROM locations WHERE DATE(created_at) >= ? AND DATE(created_at) <= ? ORDER BY created_at DESC");
+        $stmt->execute([$start_date, $end_date]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     private $conn;
     public function __construct($db) {
         $this->conn = $db;

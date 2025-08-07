@@ -1,6 +1,15 @@
 
+
 <?php
 require_once __DIR__ . '/../config/constants.php';
+
+// Persistent login: restore session if cookie is present and session is not set
+require_once __DIR__ . '/PersistentLogin.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['user_id']) && !empty($_COOKIE['roomlinks_auth'])) {
+    $persistentLogin = new PersistentLogin();
+    $persistentLogin->checkToken();
+}
 
 function loginUser($userId, $role = 'user') {
     if (session_status() === PHP_SESSION_NONE) {

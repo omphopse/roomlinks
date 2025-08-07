@@ -13,9 +13,6 @@ $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
 
 
-$vibesModel = new Vibes();
-$vibes = $vibesModel->getVibesByDate($start_date, $end_date);
-$totalVibes = count($vibes);
 ?>
 
 <!DOCTYPE html>
@@ -27,6 +24,8 @@ $totalVibes = count($vibes);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="<?php echo APP_URL; ?>/admin-asset/libs/morris.js/morris.css" rel="stylesheet" type="text/css" />
+
+    <link rel="icon" type="image/x-icon" href="<?php echo APP_URL; ?>/admin-asset/images/favicon.ico" />
 
     <!-- third party css -->
     <link href="<?php echo APP_URL; ?>/admin-asset/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css"
