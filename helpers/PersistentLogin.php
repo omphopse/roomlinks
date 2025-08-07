@@ -5,7 +5,7 @@ require_once __DIR__ . '/../config/database.php';
 class PersistentLogin {
     private $cookieName = 'roomlinks_auth';
     private $cookieExpireDays = 30;
-    private $cookiePath = '/roomlinks';
+    private $cookiePath = '/';
     private $cookieSecure = false; // Set true if using HTTPS
     private $cookieHttpOnly = true;
     private $db;

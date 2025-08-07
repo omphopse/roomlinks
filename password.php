@@ -1,5 +1,5 @@
 <?php
-$password = 'admin123'; // Replace with the actual password you want to hash
+$password = 'Admin@123'; // Replace with the actual password you want to hash
 
 // Cost factor (e.g., 10) determines the computational effort
 $options = [
