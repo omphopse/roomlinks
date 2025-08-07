@@ -872,6 +872,12 @@ class UserModel
             $uploaded_picture = 'assets/profile/profilepictures/' . $monthYear . '/' . $filename;
         }
 
+        // Use custom location if provided and location is 'other' (string or int)
+        if (isset($data['location']) && ($data['location'] === 'other' || $data['location'] === 0 || $data['location'] === '0') && !empty($data['custom_location'])) {
+            $data['location'] = $data['custom_location'];
+        }
+
+        
         // Enforce unique phone number only if changed
         if (!empty($data['phone'])) {
             $currentPhone = '';
@@ -919,7 +925,7 @@ class UserModel
                 location=VALUES(location), avatar_id=VALUES(avatar_id), uploaded_picture=VALUES(uploaded_picture)";
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param(
-            'issssiss',
+            'isssssss',
             $userId,
             $data['name'],
             $data['phone'],

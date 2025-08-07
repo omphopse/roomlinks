@@ -122,18 +122,21 @@ $femaleAvatars = UserController::getRandomAvatars(array_values($femaleAvatars), 
                 <div class="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
                     <label class="font-bold text-gray-700 mb-1 md:mb-0 md:w-48" for="location">Please select your
                         location</label>
-                    <select id="location" name="location"
-                        class="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full"
-                        required>
-                        <option value="">Select location</option>
-                        <?php if (!empty($locations)): ?>
-                            <?php foreach ($locations as $loc): ?>
-                                <option value="<?= htmlspecialchars($loc['id']) ?>"><?= htmlspecialchars($loc['location']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        <option value="other">Other</option>
-                    </select>
+                    <div class="flex-1 w-full">
+                        <select id="location" name="location"
+                            class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full"
+                            required>
+                            <option value="">Select location</option>
+                            <?php if (!empty($locations)): ?>
+                                <?php foreach ($locations as $loc): ?>
+                                    <option value="<?= htmlspecialchars($loc['id']) ?>"><?= htmlspecialchars($loc['location']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                            <option value="other">Other</option>
+                        </select>
+                        <input type="text" id="custom_location" name="custom_location" placeholder="Enter your location" class="mt-2 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full hidden" />
+                    </div>
                 </div>
                 <div class="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
                     <label class="font-bold text-gray-700 mb-2 md:mb-0 md:w-64 w-full" for="profile_picture">Upload
@@ -200,6 +203,23 @@ $femaleAvatars = UserController::getRandomAvatars(array_values($femaleAvatars), 
         </div>
 
         <script>
+            // Show custom location input if 'Other' is selected
+            document.addEventListener('DOMContentLoaded', function () {
+                var locationSelect = document.getElementById('location');
+                var customLocation = document.getElementById('custom_location');
+                if (locationSelect && customLocation) {
+                    locationSelect.addEventListener('change', function () {
+                        if (this.value === 'other') {
+                            customLocation.classList.remove('hidden');
+                            customLocation.required = true;
+                        } else {
+                            customLocation.classList.add('hidden');
+                            customLocation.required = false;
+                            customLocation.value = '';
+                        }
+                    });
+                }
+            });
             // Button selection logic for Gender
             document.querySelectorAll('.gender-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
@@ -352,6 +372,14 @@ $femaleAvatars = UserController::getRandomAvatars(array_values($femaleAvatars), 
                     errorDiv.textContent = 'Please upload a profile image or select an avatar.';
                     errorDiv.style.display = '';
                     return;
+                }
+
+                // If custom location is shown, set location value to custom_location for backend
+                const locationSelect = document.getElementById('location');
+                const customLocation = document.getElementById('custom_location');
+                if (locationSelect && customLocation && locationSelect.value === 'other' && customLocation.value.trim() !== '') {
+                    data.set('location', 'other');
+                    data.set('custom_location', customLocation.value.trim());
                 }
 
                 try {

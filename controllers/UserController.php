@@ -536,7 +536,8 @@ class UserController {
                     'who' => $_POST['who'] ?? '',
                     'gender' => $_POST['gender'] ?? '',
                     'location' => $_POST['location'] ?? '',
-                    'avatar' => $_POST['avatar'] ?? ''
+                    'avatar' => $_POST['avatar'] ?? '',
+                    'custom_location' => $_POST['custom_location'] ?? ''
                 ];
                 $file = $_FILES['profile_picture'] ?? null;
                 // Insert user into DB now
@@ -565,7 +566,8 @@ class UserController {
                     'who' => $_POST['who'] ?? '',
                     'gender' => $_POST['gender'] ?? '',
                     'location' => $_POST['location'] ?? '',
-                    'avatar' => $_POST['avatar'] ?? ''
+                    'avatar' => $_POST['avatar'] ?? '',
+                    'custom_location' => $_POST['custom_location'] ?? ''
                 ];
                 $file = $_FILES['profile_picture'] ?? null;
                 $userModel = new UserModel();
