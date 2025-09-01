@@ -164,7 +164,7 @@ checkAdminAuth();
                     </div>
                     <!-- Edit Report Status Modal -->
                     <div class="modal fade" id="editStatusModal" tabindex="-1" aria-labelledby="editStatusModalLabel" aria-hidden="true">
-                        <div class="modal-dialog">
+                        <div class="modal-dialog modal-fullscreen-sm-down">
                             <div class="modal-content">
                                 <form method="POST" action="<?php echo APP_URL; ?>/admin/reports/editstatus" id="editStatusForm">
                                     <div class="modal-header">

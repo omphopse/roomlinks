@@ -30,7 +30,56 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
 </head>
 
 <body class="flex flex-col">
+
     <?php include 'partials/header.php' ?>
+
+    <!-- Loading Popup Animation -->
+    <div id="loadingPopup" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-40 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 min-w-[300px] max-w-xs">
+            <img src="assets/banner/success.png" alt="Loading" class="w-32 h-32 object-contain mb-2 animate-bounce" />
+            <div class="flex items-center gap-2">
+                <span class="loader inline-block w-6 h-6 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></span>
+                <span class="text-lg font-semibold text-gray-700">Uploading images...</span>
+            </div>
+            <span class="text-sm text-gray-500">Please wait while your images are being uploaded.</span>
+        </div>
+    </div>
+
+    <!-- Success Popup Animation -->
+    <div id="successPopup" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-40 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 min-w-[300px] max-w-xs">
+            <span class="inline-block w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                <i class="fas fa-check text-green-600 text-4xl"></i>
+            </span>
+            <span class="text-lg font-semibold text-gray-700">Room uploaded successfully!</span>
+            <span class="text-sm text-gray-500">Your room listing has been submitted.</span>
+        </div>
+    </div>
+
+    <style>
+        /* Success popup animation */
+        #successPopup .fa-check {
+            animation: pop 0.6s cubic-bezier(.17,.67,.83,.67) 1;
+        }
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            60% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        .animate-bounce {
+            animation: bounce 1.2s infinite;
+        }
+    </style>
 
     <!-- Add Room Requirment Start -->
     <section class="py-16 md:py-20 flex justify-center items-center">
@@ -156,60 +205,52 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     <?php include 'partials/footer.php' ?>
 
     <script>
-        function setupButtonGroup(groupName, defaultValue, multiSelect = false) {
-            const btns = document.querySelectorAll('.select-btn[data-group="' + groupName + '"]');
-            const input = document.getElementById(groupName + "_input");
-            if (multiSelect) {
-                // Support multiple default values (comma or pipe separated)
-                let defaults = [];
-                if (typeof defaultValue === 'string') {
-                    defaults = defaultValue.split(/[,|]/).map(v => v.trim()).filter(Boolean);
-                } else if (Array.isArray(defaultValue)) {
-                    defaults = defaultValue;
-                }
-                btns.forEach(btn => {
-                    btn.addEventListener('click', function () {
-                        this.classList.toggle('selected');
-                        // Collect all selected values
-                        const selected = Array.from(btns).filter(b => b.classList.contains('selected')).map(b => b.dataset.value);
-                        input.value = selected.join(',');
-                    });
-                    // Set initial selection if in defaults
-                    if (defaults.includes(btn.dataset.value)) {
-                        btn.classList.add('selected');
+        // --- Begin: Exact JS from roommate.php for popups ---
+        document.addEventListener('DOMContentLoaded', function () {
+            // Button group logic (single and multi-select)
+            function setupButtonGroup(groupName, defaultValue, multiSelect = false) {
+                const btns = document.querySelectorAll('.select-btn[data-group="' + groupName + '"]');
+                const input = document.getElementById(groupName + "_input");
+                if (multiSelect) {
+                    let defaults = [];
+                    if (typeof defaultValue === 'string') {
+                        defaults = defaultValue.split(/[,|]/).map(v => v.trim()).filter(Boolean);
+                    } else if (Array.isArray(defaultValue)) {
+                        defaults = defaultValue;
                     }
-                });
-                // Set input value to all selected
-                const selected = Array.from(btns).filter(b => b.classList.contains('selected')).map(b => b.dataset.value);
-                input.value = selected.join(',');
-            } else {
-                btns.forEach(btn => {
-                    btn.addEventListener('click', function () {
-                        btns.forEach(b => b.classList.remove('selected'));
-                        this.classList.add('selected');
-                        input.value = this.dataset.value;
+                    btns.forEach(btn => {
+                        btn.addEventListener('click', function () {
+                            this.classList.toggle('selected');
+                            const selected = Array.from(btns).filter(b => b.classList.contains('selected')).map(b => b.dataset.value);
+                            input.value = selected.join(',');
+                        });
+                        if (defaults.includes(btn.dataset.value)) {
+                            btn.classList.add('selected');
+                        }
                     });
-                });
-                // Set default
-                let defaultBtn = Array.from(btns).find(b => b.dataset.value === defaultValue);
-                if (defaultBtn) {
-                    defaultBtn.classList.add('selected');
-                    input.value = defaultValue;
+                    const selected = Array.from(btns).filter(b => b.classList.contains('selected')).map(b => b.dataset.value);
+                    input.value = selected.join(',');
+                } else {
+                    btns.forEach(btn => {
+                        btn.addEventListener('click', function () {
+                            btns.forEach(b => b.classList.remove('selected'));
+                            this.classList.add('selected');
+                            input.value = this.dataset.value;
+                        });
+                    });
+                    let defaultBtn = Array.from(btns).find(b => b.dataset.value === defaultValue);
+                    if (defaultBtn) {
+                        defaultBtn.classList.add('selected');
+                        input.value = defaultValue;
+                    }
                 }
             }
-        }
-        document.addEventListener('DOMContentLoaded', function () {
-            // Use PHP to inject the correct values for edit mode, else use defaults
             var lookingForVal = '<?php echo $isEdit ? htmlspecialchars($listingData['gender']) : 'any'; ?>';
             var occupancyVal = '<?php echo $isEdit ? htmlspecialchars($listingData['occupancy']) : 'single'; ?>';
             var contactMethodVal = '<?php echo $isEdit ? htmlspecialchars($listingData['contact']) : 'call'; ?>';
-            // contactMethodVal may be pipe-separated, convert to comma for JS
             contactMethodVal = contactMethodVal.replace(/\s*\|\s*/g, ',');
             setupButtonGroup('looking_for', lookingForVal);
             setupButtonGroup('occupancy', occupancyVal);
-            setupButtonGroup('pg_interest', 'no');
-            setupButtonGroup('team_interest', 'no');
-            setupButtonGroup('mobile_visible', 'yes');
             setupButtonGroup('contact_method', contactMethodVal, true);
 
             // Description word limit logic
@@ -220,7 +261,6 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
             desc.addEventListener('input', function () {
                 let words = desc.value.match(/\b\w+\b/g) || [];
                 if (words.length > 300) {
-                    // Trim to 300 words
                     desc.value = words.slice(0, 300).join(' ');
                     words = desc.value.match(/\b\w+\b/g) || [];
                     wordWarning.classList.remove('hidden');
@@ -228,32 +268,50 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                     wordWarning.classList.add('hidden');
                 }
                 wordCount.textContent = words.length + '/300 words';
-                // Hide min word error on input
                 if (words.length >= 20) {
                     descMinWordError.classList.add('hidden');
                 }
             });
 
-            // Form validation for contact method
+            // Form validation and popup logic
             const form = document.getElementById('requirementForm');
             const contactMethodError = document.getElementById('contact-method-error');
+            const loadingPopup = document.getElementById('loadingPopup');
+            const successPopup = document.getElementById('successPopup');
             form.addEventListener('submit', function (e) {
                 const selectedBtns = document.querySelectorAll('.select-btn[data-group="contact_method"].selected');
+                let valid = true;
                 if (selectedBtns.length < 2) {
                     contactMethodError.classList.remove('hidden');
-                    e.preventDefault();
+                    valid = false;
                 } else {
                     contactMethodError.classList.add('hidden');
                 }
                 let words = desc.value.match(/\b\w+\b/g) || [];
                 if (words.length < 20) {
                     descMinWordError.classList.remove('hidden');
-                    e.preventDefault();
+                    valid = false;
                 } else {
                     descMinWordError.classList.add('hidden');
                 }
+                if (!valid) {
+                    e.preventDefault();
+                    return;
+                }
+                // Show loading popup
+                e.preventDefault();
+                loadingPopup.classList.remove('hidden');
+                setTimeout(() => {
+                    loadingPopup.classList.add('hidden');
+                    successPopup.classList.remove('hidden');
+                    setTimeout(() => {
+                        successPopup.classList.add('hidden');
+                        form.submit();
+                    }, 2000);
+                }, 2000);
             });
         });
+        // --- End: Exact JS from roommate.php for popups ---
     </script>
 </body>
 

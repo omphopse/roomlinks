@@ -68,6 +68,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="flex flex-col">
     <?php include 'partials/header.php' ?>
 
+    <!-- Loading Popup Animation -->
+    <div id="loadingPopup" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-40 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 min-w-[300px] max-w-xs">
+            <img src="assets/banner/success.png" alt="Loading" class="w-32 h-32 object-contain mb-2 animate-bounce" />
+            <div class="flex items-center gap-2">
+                <span class="loader inline-block w-6 h-6 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></span>
+                <span class="text-lg font-semibold text-gray-700">Uploading images...</span>
+            </div>
+            <span class="text-sm text-gray-500">Please wait while your images are being uploaded.</span>
+        </div>
+    </div>
+
+    <!-- Success Popup Animation -->
+    <div id="successPopup" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-40 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 min-w-[300px] max-w-xs">
+            <span class="inline-block w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                <i class="fas fa-check text-green-600 text-4xl"></i>
+            </span>
+            <span class="text-lg font-semibold text-gray-700">Room uploaded successfully!</span>
+            <span class="text-sm text-gray-500">Your room listing has been submitted.</span>
+        </div>
+    </div>
+
+    <style>
+        /* Success popup animation */
+        #successPopup .fa-check {
+            animation: pop 0.6s cubic-bezier(.17,.67,.83,.67) 1;
+        }
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            60% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        .animate-bounce {
+            animation: bounce 1.2s infinite;
+        }
+    </style>
+
     <!-- Add Your Room Start -->
     <section class="py-16 md:py-20 flex justify-center items-center">
         <div class="w-full max-w-4xl mx-auto bg-white  p-4 sm:p-8 md:p-10 lg:p-12 xl:p-14 sm:mx-4 md:mx-8 lg:mx-0">
@@ -221,10 +269,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fas fa-angle-right"></i>
                     </button>
                 </div>
+                <?php if (empty($profile['who_are_you']) || strtolower($profile['who_are_you']) === 'roommate'): ?>
                 <div class="text-center mt-2 text-base text-gray-700">
-                    Looking for a room? <a href="#" class="text-[--primary-color] font-bold underline">Add Requirement
+                    Looking for a room? <a href="<?php echo APP_URL; ?>/room" class="text-[--primary-color] font-bold underline">Add Requirement
                         <i class="fas fa-angle-right text-xs"></i></a>
                 </div>
+                <?php endif; ?>
             </form>
         </div>
     </section>
@@ -232,6 +282,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php include 'partials/footer.php' ?>
     <script>
+        // Client-side image compression and resizing before upload
+        function compressImage(file, maxWidth = 1024, maxHeight = 1024, quality = 0.7) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                };
+                img.onload = function() {
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxWidth) {
+                        height = Math.round(height * (maxWidth / width));
+                        width = maxWidth;
+                    }
+                    if (height > maxHeight) {
+                        width = Math.round(width * (maxHeight / height));
+                        height = maxHeight;
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob(blob => {
+                        resolve(blob);
+                    }, 'image/jpeg', quality);
+                };
+                img.onerror = reject;
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             // Form validation for contact method, images, and description word count
             document.getElementById('addRoomForm').addEventListener('submit', function (e) {
@@ -268,19 +352,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 let oversize = false;
                 for (let i = 0; i < files.length; i++) {
-                    if (files[i].size > 20 * 1024 * 1024) {
+                    if (files[i].size > 5 * 1024 * 1024) { // Lower max size to 5MB for speed
                         oversize = true;
                         break;
                     }
                 }
                 if (oversize) {
-                    imageError.textContent = 'Each image must be less than 20MB.';
+                    imageError.textContent = 'Each image must be less than 5MB.';
                     imageError.classList.remove('hidden');
                     e.preventDefault();
                     return;
                 }
                 imageError.textContent = '';
                 imageError.classList.add('hidden');
+
+                // Compress and resize images before upload
+                if (files.length > 0) {
+                    e.preventDefault();
+                    document.getElementById('loadingPopup').classList.remove('hidden');
+                    let compressPromises = [];
+                    for (let i = 0; i < files.length; i++) {
+                        compressPromises.push(compressImage(files[i]));
+                    }
+                    Promise.all(compressPromises).then(blobs => {
+                        const dt = new DataTransfer();
+                        blobs.forEach((blob, idx) => {
+                            let fileName = files[idx].name.replace(/\.[^.]+$/, '.jpg');
+                            dt.items.add(new File([blob], fileName, { type: 'image/jpeg' }));
+                        });
+                        fileInput.files = dt.files;
+                        setTimeout(() => {
+                            document.getElementById('loadingPopup').classList.add('hidden');
+                            document.getElementById('successPopup').classList.remove('hidden');
+                            setTimeout(() => {
+                                e.target.submit();
+                            }, 1200); // Show success popup for 1.2 seconds
+                        }, 1200); // Loading popup for 1.2 seconds
+                    });
+                    return;
+                }
                 // Validate description word count
                 const desc = document.getElementById('description');
                 let words = desc.value.match(/\b\w+\b/g) || [];
@@ -295,6 +405,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     descError.textContent = '';
                     descError.classList.add('hidden');
                 }
+
+                // Show loading popup and delay form submission for 3 seconds
+                e.preventDefault();
+                document.getElementById('loadingPopup').classList.remove('hidden');
+                setTimeout(() => {
+                    document.getElementById('loadingPopup').classList.add('hidden');
+                    document.getElementById('successPopup').classList.remove('hidden');
+                    setTimeout(() => {
+                        e.target.submit();
+                    }, 2000); // Show success popup for 2 seconds
+                }, 2000); // Loading popup for 3 seconds
             });
             // Single-select button groups (radio-like)
             function setupButtonGroup(groupName, defaultValue) {
@@ -566,3 +687,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+

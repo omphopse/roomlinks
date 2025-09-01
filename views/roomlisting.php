@@ -148,7 +148,7 @@ if (empty($images) && !empty($listing['image'])) {
 <body class="flex flex-col min-h-screen ">
     <?php include 'partials/header.php' ?>
     <!-- Single Listing Start -->
-    <div class="w-full flex justify-center">
+    <div class="w-full flex justify-center bg-white">
         <div class="w-full max-w-6xl py-8 px-2 md:px-8 flex md:flex-row flex-col gap-6">
             <!-- Left Sidebar (Desktop Only) -->
             <div class="hidden md:flex md:w-1/4 w-full flex-col gap-4">
