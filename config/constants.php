@@ -1,8 +1,8 @@
 <?php
 // Application constants
 define('APP_NAME', 'Room Rental System');
-define('APP_URL', 'http://localhost/roomlinks');
-// define('APP_URL', 'https://test.roomlinks.in');
+// define('APP_URL', 'http://localhost/roomlinks');
+define('APP_URL', 'https://test.roomlinks.in');
 // // define('APP_URL', 'https://roomlinks.in');
 define('APP_TIMEZONE', 'Asia/Kolkata');
 
