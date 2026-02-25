@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../models/Vibes.php';
+require_once __DIR__ . '/../models/Location.php';
 
 require_once __DIR__ . '/AuditLogController.php';
 require_once __DIR__ . '/../config/database.php';
@@ -685,10 +686,10 @@ class AdminController
         exit;
     }
 
-    // Location Management
-    public function addLocations()
+    // City Management
+    public function addCities()
     {
-        require_once __DIR__ . '/../models/Location.php';
+        require_once __DIR__ . '/../models/City.php';
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
@@ -699,8 +700,8 @@ class AdminController
             });
             if (!empty($locations)) {
                 $db = getPDO();
-                $locationModel = new Location($db);
-                $locationModel->addLocations($locations);
+                $cityModel = new City($db);
+                $cityModel->addCities($locations);
                 // Log to audit_logs using AuditLogController
                 $pdo = getPDO();
                 $auditLogController = new AuditLogController($pdo);
@@ -708,43 +709,43 @@ class AdminController
                 $adminId = $_SESSION['user_id'] ?? null;
                 $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
                 $details = json_encode([
-                    'action' => 'addLocations',
-                    'locations' => $locations
+                    'action' => 'addCities',
+                    'cities' => $locations
                 ]);
-                $auditLogController->logAction($adminId, $userRole, 'CREATE', 'locations', null, $details, $ip);
-                $_SESSION['success'] = 'Locations added successfully!';
+                $auditLogController->logAction($adminId, $userRole, 'CREATE', 'cities', null, $details, $ip);
+                $_SESSION['success'] = 'Cities added successfully!';
             } else {
-                $_SESSION['error'] = 'Please enter at least one location.';
+                $_SESSION['error'] = 'Please enter at least one city.';
             }
-            header('Location: ' . APP_URL . '/admin/addlocation');
+            header('Location: ' . APP_URL . '/admin/addcity');
             exit();
         }
     }
 
-    // Show all locations
-    public function showLocations()
+    // Show all cities
+    public function showCities()
     {
-        require_once __DIR__ . '/../models/Location.php';
+        require_once __DIR__ . '/../models/City.php';
         $db = getPDO();
-        $locationModel = new Location($db);
+        $cityModel = new City($db);
         $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
         $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
-        $locations = $locationModel->getLocationsByDate($start_date, $end_date);
-        include __DIR__ . '/../views/admin/location.php';
+        $locations = $cityModel->getCitiesByDate($start_date, $end_date);
+        include __DIR__ . '/../views/admin/cities.php';
     }
 
-    // Edit a location
-    public function editLocation()
+    // Edit a city
+    public function editCity()
     {
-        require_once __DIR__ . '/../models/Location.php';
+        require_once __DIR__ . '/../models/City.php';
         $db = getPDO();
-        $locationModel = new Location($db);
+        $cityModel = new City($db);
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['location_id'], $_POST['location_name'])) {
             $id = intval($_POST['location_id']);
             $name = trim($_POST['location_name']);
             if ($name !== '') {
-                $locationModel->updateLocation($id, $name);
-                $_SESSION['success'] = 'Location updated successfully!';
+                $cityModel->updateCity($id, $name);
+                $_SESSION['success'] = 'City updated successfully!';
                 // Log to audit_logs using AuditLogController
                 $pdo = getPDO();
                 $auditLogController = new AuditLogController($pdo);
@@ -752,29 +753,29 @@ class AdminController
                 $adminId = $_SESSION['user_id'] ?? null;
                 $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
                 $details = json_encode([
-                    'action' => 'editLocation',
-                    'locationId' => $id,
+                    'action' => 'editCity',
+                    'cityId' => $id,
                     'newName' => $name
                 ]);
-                $auditLogController->logAction($adminId, $userRole, 'UPDATE', 'locations', $id, $details, $ip);
+                $auditLogController->logAction($adminId, $userRole, 'UPDATE', 'cities', $id, $details, $ip);
             } else {
-                $_SESSION['error'] = 'Location name cannot be empty!';
+                $_SESSION['error'] = 'City name cannot be empty!';
             }
         }
-        header('Location: ' . APP_URL . '/admin/locations');
+        header('Location: ' . APP_URL . '/admin/cities');
         exit();
     }
 
-    // Delete a location
-    public function deleteLocation()
+    // Delete a city
+    public function deleteCity()
     {
-        require_once __DIR__ . '/../models/Location.php';
+        require_once __DIR__ . '/../models/City.php';
         $db = getPDO();
-        $locationModel = new Location($db);
+        $cityModel = new City($db);
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['location_id'])) {
             $id = intval($_POST['location_id']);
-            $locationModel->deleteLocation($id);
-            $_SESSION['success'] = 'Location deleted successfully!';
+            $cityModel->deleteCity($id);
+            $_SESSION['success'] = 'City deleted successfully!';
             // Log to audit_logs using AuditLogController
             require_once __DIR__ . '/AuditLogController.php';
             require_once __DIR__ . '/../config/database.php';
@@ -784,10 +785,114 @@ class AdminController
             $adminId = $_SESSION['user_id'] ?? null;
             $userRole = isset($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : 'admin';
             $details = json_encode([
-                'action' => 'deleteLocation',
-                'locationId' => $id
+                'action' => 'deleteCity',
+                'cityId' => $id
             ]);
-            $auditLogController->logAction($adminId, $userRole, 'DELETE', 'locations', $id, $details, $ip);
+            $auditLogController->logAction($adminId, $userRole, 'DELETE', 'cities', $id, $details, $ip);
+        } else {
+            $_SESSION['error'] = 'Invalid request.';
+        }
+        header('Location: ' . APP_URL . '/admin/cities');
+        exit();
+    }
+
+    // Location Management
+    public function addLocations()
+    {
+        require_once __DIR__ . '/../models/Location.php';
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        $locationModel = new Location();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['city_id'], $_POST['location_name'])) {
+            $city_id = intval($_POST['city_id']);
+            $names = $_POST['location_name'];
+            $added = 0;
+            $errors = [];
+            foreach ($names as $name) {
+                $name = trim($name);
+                if ($name === '') continue;
+                try {
+                    if ($locationModel->addLocation($city_id, $name)) {
+                        $added++;
+                    }
+                } catch (Exception $e) {
+                    $errors[] = $name . ': ' . $e->getMessage();
+                }
+            }
+            if ($added) {
+                $_SESSION['success'] = "Added $added location(s) successfully.";
+            }
+            if ($errors) {
+                $_SESSION['error'] = implode(' | ', $errors);
+            }
+        } else {
+            $_SESSION['error'] = 'Invalid request.';
+        }
+        header('Location: ' . APP_URL . '/admin/addlocation');
+        exit();
+    }
+
+    public function showAddLocationsPage()
+    {
+        require_once __DIR__ . '/../models/City.php';
+        $pdo = getPDO();
+        $stmt = $pdo->prepare('SELECT * FROM city ORDER BY location');
+        $stmt->execute();
+        $cities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        include __DIR__ . '/../views/admin/addlocation.php';
+    }
+
+    public function showLocations()
+    {
+        $locationModel = new Location();
+        // optional filters from GET
+        $city_id = isset($_GET['city_id']) && $_GET['city_id'] !== '' ? intval($_GET['city_id']) : null;
+        $start_date = isset($_GET['start_date']) && $_GET['start_date'] !== '' ? $_GET['start_date'] : null;
+        $end_date = isset($_GET['end_date']) && $_GET['end_date'] !== '' ? $_GET['end_date'] : null;
+        $locations = $locationModel->getAllLocations($city_id, $start_date, $end_date);
+        $pdo = getPDO();
+        $stmt = $pdo->prepare('SELECT * FROM city ORDER BY location');
+        $stmt->execute();
+        $cities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        include __DIR__ . '/../views/admin/locations.php';
+    }
+
+    public function editLocation()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        $locationModel = new Location();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['location_id'], $_POST['city_id'], $_POST['location_name'])) {
+            $id = intval($_POST['location_id']);
+            $city_id = intval($_POST['city_id']);
+            $name = trim($_POST['location_name']);
+            if ($locationModel->updateLocation($id, $city_id, $name)) {
+                $_SESSION['success'] = 'Location updated successfully!';
+            } else {
+                $_SESSION['error'] = 'Failed to update location.';
+            }
+        } else {
+            $_SESSION['error'] = 'Invalid request.';
+        }
+        header('Location: ' . APP_URL . '/admin/locations');
+        exit();
+    }
+
+    public function deleteLocation()
+    {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        $locationModel = new Location();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['location_id'])) {
+            $id = intval($_POST['location_id']);
+            if ($locationModel->deleteLocation($id)) {
+                $_SESSION['success'] = 'Location deleted successfully!';
+            } else {
+                $_SESSION['error'] = 'Failed to delete location.';
+            }
         } else {
             $_SESSION['error'] = 'Invalid request.';
         }

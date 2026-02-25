@@ -1,6 +1,8 @@
 <?php require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../controllers/UserController.php';
+require_once __DIR__ . '/../models/UserModel.php';
 $userController = new UserController();
+$userModel = new UserModel();
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $perPage = 24;
 $start = ($page - 1) * $perPage;
@@ -45,7 +47,15 @@ if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQU
                         <div class="custom-listing-location">
                             <i class="fas fa-map-marker-alt"></i>
                             <span class="block max-w-[160px] truncate align-middle"
-                                title="<?php echo htmlspecialchars($listing['location']); ?>"><?php echo htmlspecialchars($listing['location']); ?></span>
+                                title=\"<?php 
+                                    $locationId = $listing['location'];
+                                    $locationName = $userModel->getLocationNameById($locationId);
+                                    echo htmlspecialchars($locationName ?? 'Location not found');
+                                ?>\"><?php 
+                                    $locationId = $listing['location'];
+                                    $locationName = $userModel->getLocationNameById($locationId);
+                                    echo htmlspecialchars($locationName ?? 'Location not found');
+                                ?></span>
                         </div>
                         <div class="custom-listing-amenities hide-scrollbar">
                             <div class="custom-listing-amenity" title="Gender">
@@ -129,11 +139,11 @@ $paginatedListings = $listings;
 ?>
 
 <?php
-require_once __DIR__ . '/../models/Location.php';
+require_once __DIR__ . '/../models/City.php';
 require_once __DIR__ . '/../config/database.php';
 $pdo = getPDO();
-$locationModel = new Location($pdo);
-$locations = $locationModel->getAllLocations();
+$locationModel = new City($pdo);
+$locations = $locationModel->getAllCities();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -300,7 +310,11 @@ $locations = $locationModel->getAllLocations();
                                     <div class="custom-listing-location">
                                         <i class="fas fa-map-marker-alt"></i>
                                         <span
-                                            class="block max-w-[190px] truncate align-middle"><?php echo $listing['location']; ?></span>
+                                            class="block max-w-[190px] truncate align-middle"><?php 
+                                                $locationId = $listing['location'];
+                                                $locationName = $userModel->getLocationNameById($locationId);
+                                                echo htmlspecialchars($locationName ?? 'Location not found');
+                                            ?></span>
                                     </div>
                                     <div class="custom-listing-amenities hide-scrollbar">
                                         <div class="custom-listing-amenity" title="Gender">

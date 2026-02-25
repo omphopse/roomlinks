@@ -124,10 +124,11 @@ class UserModel
     }
         
      // Update a room listing in the database (store highlight IDs in propertyhighlights)
-    public function updateRoomListing($listingId, $user_id, $location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $imagePaths = null, $role = null)
+    public function updateRoomListing($listingId, $user_id, $address, $location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $imagePaths = null, $role = null, $status = 'active')
     {
         // Build SQL dynamically to optionally update images
         $fields = [
+            'address = ?',
             'location = ?',
             'rent = ?',
             'gender = ?',
@@ -136,10 +137,11 @@ class UserModel
             'amenities = ?',
             'description = ?',
             'contact = ?',
-            'role = ?'
+            'role = ?',
+            'status = ?'
         ];
-        $params = [$location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $role];
-        $types = 'sdsssssss';
+        $params = [$address, $location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $role, $status];
+        $types = 'ssissssssss';
         // If images are provided, update them
         if ($imagePaths && is_array($imagePaths)) {
             for ($i = 1; $i <= 5; $i++) {
@@ -160,12 +162,12 @@ class UserModel
         return $result ? true : 'Failed to update room listing.';
     }
        // Update a requirement (roommate post) in the database
-    public function updateRoommatelisting($id, $user_id, $location, $rent, $gender, $occupancy, $highlights, $contact, $description, $role) {
+    public function updateRoommatelisting($id, $user_id, $location, $rent, $gender, $occupancy, $highlights, $contact, $description, $role, $status = 'active') {
         if (!$id || !$user_id) return 'Invalid ID or user.';
-        $sql = "UPDATE listing SET location=?, rent=?, gender=?, occupancy=?, propertyhighlights=?, contact=?, description=?, role=? WHERE id=? AND user_id=?";
+        $sql = "UPDATE listing SET location=?, rent=?, gender=?, occupancy=?, propertyhighlights=?, contact=?, description=?, role=?, status=? WHERE id=? AND user_id=?";
         $stmt = $this->conn->prepare($sql);
         if (!$stmt) return 'DB error: prepare failed.';
-        $stmt->bind_param('sdssssssii', $location, $rent, $gender, $occupancy, $highlights, $contact, $description, $role, $id, $user_id);
+        $stmt->bind_param('sdsssssssii', $location, $rent, $gender, $occupancy, $highlights, $contact, $description, $role, $status, $id, $user_id);
         $result = $stmt->execute();
         $stmt->close();
         return $result ? true : 'Failed to update requirement.';
@@ -918,11 +920,11 @@ class UserModel
             }
         }
 
-        $sql = "INSERT INTO profile (id, name, phone, who_are_you, gender, location, avatar_id, uploaded_picture)
+        $sql = "INSERT INTO profile (id, name, phone, who_are_you, gender, city, avatar_id, uploaded_picture)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                 name=VALUES(name), phone=VALUES(phone), who_are_you=VALUES(who_are_you), gender=VALUES(gender),
-                location=VALUES(location), avatar_id=VALUES(avatar_id), uploaded_picture=VALUES(uploaded_picture)";
+                city=VALUES(city), avatar_id=VALUES(avatar_id), uploaded_picture=VALUES(uploaded_picture)";
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param(
             'isssssss',
@@ -991,9 +993,9 @@ class UserModel
     }
 
     // Add a new room listing to the database
-    public function addRoomListing($user_id, $location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $imagePaths, $role)
+    public function addRoomListing($user_id, $address, $location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $imagePaths, $role, $status = 'active')
     {
-        $sql = "INSERT INTO listing (user_id, location, rent, gender, occupancy, propertyhighlights, amenities, description, contact, image1, image2, image3, image4, image5, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO listing (user_id, address, location, rent, gender, occupancy, propertyhighlights, amenities, description, contact, image1, image2, image3, image4, image5, role, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($sql);
         $img1 = isset($imagePaths[0]) ? $imagePaths[0] : '';
         $img2 = isset($imagePaths[1]) ? $imagePaths[1] : '';
@@ -1001,8 +1003,9 @@ class UserModel
         $img4 = isset($imagePaths[3]) ? $imagePaths[3] : '';
         $img5 = isset($imagePaths[4]) ? $imagePaths[4] : '';
         $stmt->bind_param(
-            'isdssssssssssss',
+            'ississsssssssssss',
             $user_id,
+            $address,
             $location,
             $rent,
             $gender,
@@ -1016,7 +1019,8 @@ class UserModel
             $img3,
             $img4,
             $img5,
-            $role
+            $role,
+            $status
         );
         $result = $stmt->execute();
         $insertId = $stmt->insert_id;
@@ -1124,5 +1128,29 @@ class UserModel
         $success = $stmt->execute();
         $stmt->close();
         return $success;
+    }
+    
+    /**
+     * Get location name by location ID
+     */
+    public function getLocationNameById($locationId)
+    {
+        if (!$this->conn) {
+            require_once __DIR__ . '/../config/database.php';
+            $this->conn = getDatabaseConnection();
+        }
+        $query = "SELECT name FROM locations WHERE id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param("i", $locationId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $stmt->close();
+            return $row['name'];
+        }
+        $stmt->close();
+        return null;
     }
 }

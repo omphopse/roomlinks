@@ -1,14 +1,14 @@
 <?php
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../helpers/auth.php';
-require_once __DIR__ . '/../models/Location.php';
+require_once __DIR__ . '/../models/City.php';
 require_once __DIR__ . '/../models/ProfilePicture.php';
 require_once __DIR__ . '/../config/database.php';
 
 
 $pdo = getPDO();
-$locationModel = new Location($pdo);
-$locations = $locationModel->getAllLocations();
+$locationModel = new City($pdo);
+$locations = $locationModel->getAllCities();
 $profilePictureModel = new ProfilePicture();
 $allAvatars = $profilePictureModel->getProfilePictures();
 $maleAvatars = array_filter($allAvatars, function ($pic) {

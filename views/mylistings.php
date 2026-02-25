@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../helpers/auth.php';
 checkAuth();
+require_once __DIR__ . '/../models/UserModel.php';
+$userModel = new UserModel();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -62,7 +64,15 @@ checkAuth();
                             <div class="custom-listing-card-content">
                                 <div class="custom-listing-location">
                                     <i class="fas fa-map-marker-alt"></i>
-                                    <span><?php echo $listing['location']; ?></span>
+                                    <span><?php 
+                                        $locationValue = $listing['location'];
+                                        if (is_numeric($locationValue)) {
+                                            $locName = $userModel->getLocationNameById((int)$locationValue);
+                                            echo htmlspecialchars($locName ?? 'Location not found');
+                                        } else {
+                                            echo htmlspecialchars($locationValue ?: 'Location not found');
+                                        }
+                                    ?></span>
                                 </div>
                                 <div class="custom-listing-amenities hide-scrollbar">
                                     <div class="custom-listing-amenity" title="Gender">

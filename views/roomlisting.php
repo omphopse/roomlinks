@@ -196,13 +196,39 @@ if (empty($images) && !empty($listing['image'])) {
                         </div>
                         <div class="flex items-center gap-2 text-gray-600 justify-center w-full"><i
                                 class="fas fa-map-marker-alt"></i>
-                            <?php echo htmlspecialchars($listing['location']); ?></div>
+                            <?php 
+                                $locationValue = $listing['location'];
+                                if (is_numeric($locationValue)) {
+                                    $locationName = $userModel->getLocationNameById((int)$locationValue);
+                                    echo htmlspecialchars($locationName ?? 'Location not found');
+                                } else {
+                                    echo htmlspecialchars($locationValue ?: 'Location not found');
+                                }
+                            ?></div>
                     </div>
                     <!-- Desktop Location Row -->
                     <div class="hidden md:block pt-8 pb-8">
-                        <h3 class="font-semibold text-lg mb-1">Location</h3>
-                        <div class="flex items-center gap-2 text-gray-600">
-                            <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($listing['location']); ?>
+                        <div class="grid grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2">Address</h3>
+                                <p class="text-gray-600">
+                                    <?php echo htmlspecialchars($listing['address'] ?? 'Not provided'); ?>
+                                </p>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg mb-1">Location</h3>
+                                <div class="flex items-center gap-2 text-gray-600">
+                                    <i class="fas fa-map-marker-alt"></i> <?php 
+                                        $locationValue = $listing['location'];
+                                        if (is_numeric($locationValue)) {
+                                            $locationName = $userModel->getLocationNameById((int)$locationValue);
+                                            echo htmlspecialchars($locationName ?? 'Location not found');
+                                        } else {
+                                            echo htmlspecialchars($locationValue ?: 'Location not found');
+                                        }
+                                    ?>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class=" border-t pt-8 pb-8">

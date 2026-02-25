@@ -129,12 +129,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if ($isEdit): ?>
                     <input type="hidden" name="id" value="<?php echo htmlspecialchars($listingData['id']); ?>">
                 <?php endif; ?>
+                <div>
+                    <label class="block text-sm font-bold mb-1">Address*</label>
+                    <textarea name="address" rows="3" placeholder="Enter full address (street, building, landmark, etc.)"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                        required><?php echo $isEdit ? htmlspecialchars($listingData['address'] ?? '') : ''; ?></textarea>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-bold mb-1">Add Your Location*</label>
-                        <input type="text" name="location" placeholder="Add Location..."
+                        <label class="block text-sm font-bold mb-1">Select City*</label>
+                        <select name="city" id="city_select"
                             class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary-400"
-                            required value="<?php echo $isEdit ? htmlspecialchars($listingData['location']) : ''; ?>">
+                            required>
+                            <option value="">-- Select City --</option>
+                            <?php 
+                                $userController = new UserController();
+                                $cities = $userController->getLocations();
+                                $selectedCityId = null;
+                                
+                                // If editing, get the city_id from the location
+                                if ($isEdit && !empty($listingData['location'])) {
+                                    require_once __DIR__ . '/../models/Location.php';
+                                    require_once __DIR__ . '/../config/database.php';
+                                    $pdo = getPDO();
+                                    $locationModel = new Location($pdo);
+                                    $selectedLocation = $locationModel->getLocationById(intval($listingData['location']));
+                                    if ($selectedLocation) {
+                                        $selectedCityId = $selectedLocation['city_id'];
+                                    }
+                                }
+                                
+                                foreach ($cities as $city) {
+                                    $isSelected = $selectedCityId && $city['id'] == $selectedCityId ? ' selected' : '';
+                                    echo '<option value="' . htmlspecialchars($city['id']) . '"' . $isSelected . '>' . htmlspecialchars($city['location'] ?? $city['name']) . '</option>';
+                                }
+                            ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-1">Select Location*</label>
+                        <select name="location" id="location_select"
+                            class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            required>
+                            <option value="">-- Select Location --</option>
+                            <?php 
+                                if ($isEdit && !empty($listingData['location'])) {
+                                    require_once __DIR__ . '/../models/Location.php';
+                                    require_once __DIR__ . '/../config/database.php';
+                                    $pdo = getPDO();
+                                    $locationModel = new Location($pdo);
+                                    $selectedLocation = $locationModel->getLocationById(intval($listingData['location']));
+                                    if ($selectedLocation) {
+                                        echo '<option value="' . htmlspecialchars($selectedLocation['id']) . '" selected>' . htmlspecialchars($selectedLocation['name']) . '</option>';
+                                    }
+                                }
+                            ?>
+                            <option value="other">Other (Enter manually)</option>
+                        </select>
+                        <input type="text" name="custom_location" id="custom_location" placeholder="Enter location name" 
+                            class="mt-2 border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary-400 w-full hidden" 
+                            value="<?php echo $isEdit && is_string($listingData['location']) && !is_numeric($listingData['location']) ? htmlspecialchars($listingData['location']) : ''; ?>" />
                     </div>
                     <div>
                         <label class="block text-sm font-bold mb-1">Approx Rent*</label>
@@ -170,6 +224,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="hidden" name="occupancy" id="occupancy_input" value="<?php echo $isEdit ? htmlspecialchars($listingData['occupancy']) : 'single'; ?>">
                     </div>
                 </div>
+                <script>
+                    function loadLocationsByCity(cityId, selectedLocationId = null) {
+                        const locationSelect = document.getElementById('location_select');
+                        const customLocation = document.getElementById('custom_location');
+                        locationSelect.innerHTML = '<option value="">-- Select Location --</option>';
+                        
+                        if (!cityId) return;
+                        
+                        fetch('<?php echo APP_URL; ?>/api/get-locations?city_id=' + cityId)
+                            .then(response => response.json())
+                            .then(data => {
+                                data.forEach(location => {
+                                    const option = document.createElement('option');
+                                    option.value = location.id;
+                                    option.textContent = location.name;
+                                    if (selectedLocationId && location.id == selectedLocationId) {
+                                        option.selected = true;
+                                    }
+                                    locationSelect.appendChild(option);
+                                });
+                                // Always add 'Other' option at the end
+                                const otherOption = document.createElement('option');
+                                otherOption.value = 'other';
+                                otherOption.textContent = 'Other (Enter manually)';
+                                locationSelect.appendChild(otherOption);
+                            })
+                            .catch(error => console.error('Error loading locations:', error));
+                    }
+
+                    // Handle location dropdown change
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const locationSelect = document.getElementById('location_select');
+                        const customLocation = document.getElementById('custom_location');
+                        
+                        if (locationSelect) {
+                            locationSelect.addEventListener('change', function() {
+                                // Only show/hide custom input, don't reload locations
+                                if (this.value === 'other') {
+                                    customLocation.classList.remove('hidden');
+                                    customLocation.required = true;
+                                    customLocation.focus();
+                                } else {
+                                    customLocation.classList.add('hidden');
+                                    customLocation.required = false;
+                                    customLocation.value = '';
+                                }
+                            });
+                        }
+                        
+                        document.getElementById('city_select').addEventListener('change', function() {
+                            loadLocationsByCity(this.value);
+                        });
+                    });
+
+                    // On page load, if city is selected, load locations
+                    window.addEventListener('load', function() {
+                        const citySelect = document.getElementById('city_select');
+                        const locationSelect = document.getElementById('location_select');
+                        const customLocation = document.getElementById('custom_location');
+                        if (citySelect.value) {
+                            const selectedLocationId = locationSelect.value || null;
+                            loadLocationsByCity(citySelect.value, selectedLocationId);
+                            
+                            // If custom location has value, mark 'other' as selected
+                            if (customLocation.value) {
+                                locationSelect.value = 'other';
+                                customLocation.classList.remove('hidden');
+                            }
+                        }
+                    });
+                </script>
                 <div class="mt-8">
                     <label class="block text-sm font-bold mb-1">Upload 5 Photos of your room</label>
                     <div class="border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 flex flex-col items-center justify-center py-10 px-4 text-center transition relative mb-8"

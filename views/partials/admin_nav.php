@@ -64,8 +64,15 @@
             </li>
 
             <li class="menu-item">
-                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/locations">
+                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/cities">
                     <span class="menu-icon"><i class="bx bx-map"></i></span>
+                    <span class="menu-text"> Cities </span>
+                </a>
+            </li>
+
+            <li class="menu-item">
+                <a class='menu-link waves-effect' href="<?php echo APP_URL; ?>/admin/locations">
+                    <span class="menu-icon"><i class="bx bx-location-plus"></i></span>
                     <span class="menu-text"> Locations </span>
                 </a>
             </li>

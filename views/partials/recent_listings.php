@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../../controllers/UserController.php';
+require_once __DIR__ . '/../../models/UserModel.php';
 $userController = new UserController();
+$userModel = new UserModel();
 $recentListings = $userController->getListings(0, 6);
 if (empty($recentListings)) {
     echo '<div class="col-span-3 text-center text-gray-500 text-xl py-16">No recent listings found.</div>';
@@ -28,7 +30,15 @@ if (empty($recentListings)) {
                 <div class="custom-listing-card-content">
                     <div class="custom-listing-location">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span class="block max-w-[190px] truncate align-middle"><?php echo $listing['location']; ?></span>
+                        <span class="block max-w-[190px] truncate align-middle"><?php 
+                            $locationValue = $listing['location'];
+                            if (is_numeric($locationValue)) {
+                                $locationName = $userModel->getLocationNameById((int)$locationValue);
+                                echo htmlspecialchars($locationName ?? 'Location not found');
+                            } else {
+                                echo htmlspecialchars($locationValue ?: 'Location not found');
+                            }
+                        ?></span>
                     </div>
                     <div class="custom-listing-amenities hide-scrollbar">
                         <div class="custom-listing-amenity" title="Gender">

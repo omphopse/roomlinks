@@ -74,7 +74,9 @@ class UserController {
     // Handle update for room listing (edit form submission)
     public function updateRoomListing($postData, $fileData, $user_id, $user_email, $amenities, $propertyHighlights, $listingId, $role = null) {
         // Validate required fields
-        $location = trim($postData['location'] ?? '');
+        $address = trim($postData['address'] ?? '');
+        // Handle location: either from dropdown (ID) or custom input
+        $location = !empty($postData['custom_location']) ? trim($postData['custom_location']) : trim($postData['location'] ?? '');
         $rent = floatval($postData['rent'] ?? 0);
         $gender = trim($postData['looking_for'] ?? 'any');
         $occupancy = 'single';
@@ -112,7 +114,7 @@ class UserController {
         $highlightsArr = $postData['highlights'] ?? [];
         $amenitiesArr = $postData['amenities'] ?? [];
         $errors = [];
-        if (!$user_id || !$location || !$rent || !$description || !$contact) {
+        if (!$user_id || !$address || !$location || !$rent || !$description || !$contact) {
             echo "<script>alert('Missing required fields.');window.history.back();</script>";
             exit();
         }
@@ -165,7 +167,8 @@ class UserController {
         // Pad to 5 for DB
         while (count($allImages) < 5) $allImages[] = '';
         // Call UserModel to update listing
-        $result = $userModel->updateRoomListing($listingId, $user_id, $location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $allImages, $role);
+        $status = trim($postData['status'] ?? 'active');
+        $result = $userModel->updateRoomListing($listingId, $user_id, $address, $location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $allImages, $role, $status);
         if ($result === true) {
             // Log to audit_logs using AuditLogController
             $pdo = getPDO();
@@ -174,6 +177,7 @@ class UserController {
             $details = json_encode([
                 'action' => 'updateRoomListing',
                 'listingId' => $listingId,
+                'address' => $address,
                 'location' => $location,
                 'rent' => $rent,
                 'gender' => $gender,
@@ -210,7 +214,8 @@ class UserController {
             $description = $_POST['description'] ?? '';
             $role = 'roommate';
             $userModel = new UserModel();
-            $result = $userModel->updateRoommatelisting($id, $user_id, $location, $rent, $gender, $occupancy, $highlights, $contact, $description, $role);
+            $status = trim($_POST['status'] ?? 'active');
+            $result = $userModel->updateRoommatelisting($id, $user_id, $location, $rent, $gender, $occupancy, $highlights, $contact, $description, $role, $status);
             if ($result === true) {
                 // Log to audit_logs using AuditLogController
                 $pdo = getPDO();
@@ -477,7 +482,8 @@ class UserController {
         checkUserAuth();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user_id = $_SESSION['user_id'] ?? null;
-            $location = $_POST['location'] ?? '';
+            // Handle location: either from dropdown (ID) or custom input
+            $location = !empty($_POST['custom_location']) ? trim($_POST['custom_location']) : trim($_POST['location'] ?? '');
             $rent = $_POST['rent'] ?? '';
             $gender = $_POST['looking_for'] ?? '';
             $occupancy = $_POST['occupancy'] ?? '';
@@ -618,11 +624,11 @@ class UserController {
 
     // Fetch locations for profile form
     public function getLocations() {
-        require_once __DIR__ . '/../models/Location.php';
+        require_once __DIR__ . '/../models/City.php';
         require_once __DIR__ . '/../config/database.php';
         $pdo = getPDO();
-        $locationModel = new Location($pdo);
-        return $locationModel->getAllLocations();
+        $locationModel = new City($pdo);
+        return $locationModel->getAllCities();
     }
 
     public static function getRandomAvatars($avatars, $limit = 4) {
@@ -826,7 +832,9 @@ class UserController {
     // Handle form data from roommate.php and add a new room listing
     public function addRoomListing($postData, $fileData, $user_id, $user_email, $amenities, $propertyHighlights, $role = null) {
         // Validate required fields
-        $location = trim($postData['location'] ?? '');
+        $address = trim($postData['address'] ?? '');
+        // Handle location: either from dropdown (ID) or custom input
+        $location = !empty($postData['custom_location']) ? trim($postData['custom_location']) : trim($postData['location'] ?? '');
         $rent = floatval($postData['rent'] ?? 0);
         $gender = trim($postData['looking_for'] ?? 'any');
         // Fix occupancy: get from hidden input, not from button value
@@ -865,7 +873,7 @@ class UserController {
         $highlightsArr = $postData['highlights'] ?? [];
         $amenitiesArr = $postData['amenities'] ?? [];
         $errors = [];
-        if (!$user_id || !$location || !$rent || !$description || !$contact) {
+        if (!$user_id || !$address || !$location || !$rent || !$description || !$contact) {
             return 'Missing required fields.';
         }
         // Map highlight names to IDs
@@ -893,7 +901,8 @@ class UserController {
             return $imagePaths; // error message
         }
         // Call UserModel to insert listing with role
-        $listingId = $userModel->addRoomListing($user_id, $location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $imagePaths, $role);
+        $status = trim($postData['status'] ?? 'active');
+        $listingId = $userModel->addRoomListing($user_id, $address, $location, $rent, $gender, $occupancy, $highlightsStr, $amenitiesStr, $description, $contact, $imagePaths, $role, $status);
         
         // Log to audit_logs using AuditLogController if insert was successful
         if ($listingId && is_numeric($listingId)) {
@@ -903,6 +912,7 @@ class UserController {
             $details = json_encode([
                 'action' => 'addRoomListing',
                 'listingId' => $listingId,
+                'address' => $address,
                 'location' => $location,
                 'rent' => $rent,
                 'gender' => $gender,

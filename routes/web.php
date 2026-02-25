@@ -29,6 +29,20 @@ if ($basePath !== '' && substr($request, 0, strlen($basePath)) === $basePath) {
 
 switch ($request) {
 
+    case '/api/get-locations':
+        // API endpoint to get locations by city_id
+        header('Content-Type: application/json');
+        if (isset($_GET['city_id'])) {
+            require_once __DIR__ . '/../models/Location.php';
+            $pdo = getPDO();
+            $locationModel = new Location($pdo);
+            $locations = $locationModel->getAllLocations(intval($_GET['city_id']));
+            echo json_encode($locations);
+        } else {
+            echo json_encode([]);
+        }
+        exit;
+
     case '/register':
         $controller = new UserController();
         $controller->register();
@@ -127,6 +141,8 @@ switch ($request) {
             $user_id = $_SESSION['user_id'] ?? null;
             $user_email = $_SESSION['email'] ?? null;
             $controller = new UserController();
+            $amenities = method_exists($controller, 'getAmenities') ? $controller->getAmenities() : [];
+            $propertyHighlights = method_exists($controller, 'getPropertyHighlights') ? $controller->getPropertyHighlights() : [];
             $controller->addRoomListing($_POST, $_FILES, $user_id, $user_email, $amenities, $propertyHighlights, $_POST['id'] ?? null);
         } else {
             http_response_code(405);
@@ -320,13 +336,24 @@ switch ($request) {
         }
         break;
 
+    case '/admin/addcity':
+        checkAdminAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new AdminController(new UserModel());
+            $controller->addCities();
+        } else {
+            require_once __DIR__ . '/../views/admin/addcity.php';
+        }
+        break;
+
     case '/admin/addlocation':
         checkAdminAuth();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new AdminController(new UserModel());
             $controller->addLocations();
         } else {
-            require_once __DIR__ . '/../views/admin/addlocation.php';
+            $controller = new AdminController(new UserModel());
+            $controller->showAddLocationsPage();
         }
         break;
 
@@ -352,6 +379,34 @@ switch ($request) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new AdminController(new UserModel());
             $controller->deleteLocation();
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/admin/cities':
+        checkAdminAuth();
+        $controller = new AdminController(new UserModel());
+        $controller->showCities();
+        break;
+
+    case '/admin/cities/edit':
+        checkAdminAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new AdminController(new UserModel());
+            $controller->editCity();
+        } else {
+            http_response_code(405);
+            echo "Method Not Allowed";
+        }
+        break;
+
+    case '/admin/cities/delete':
+        checkAdminAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new AdminController(new UserModel());
+            $controller->deleteCity();
         } else {
             http_response_code(405);
             echo "Method Not Allowed";

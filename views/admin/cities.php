@@ -14,7 +14,7 @@ checkAdminAuth();
 
 <head>
     <meta charset="utf-8" />
-    <title>Locations | Admin Dashboard</title>
+    <title>Cities | Admin Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="<?php echo APP_URL; ?>/admin-asset/libs/morris.js/morris.css" rel="stylesheet" type="text/css" />
@@ -59,18 +59,18 @@ checkAdminAuth();
                     <div class="py-3 py-lg-4">
                         <div class="row">
                             <div class="col-lg-6 d-flex">
-                                <h4 class="page-title mb-0">Locations</h4>
-                                <a href="<?php echo APP_URL; ?>/admin/addlocation"
+                                <h4 class="page-title mb-0">Cities</h4>
+                                <a href="<?php echo APP_URL; ?>/admin/addcity"
                                     style="margin-left: 24px; margin-top: -10px;"
                                     class="btn btn-dark waves-effect waves-light"><i
-                                        class="bx bxs-add-to-queue me-1"></i>Add New Location</a>
+                                        class="bx bxs-add-to-queue me-1"></i>Add New City</a>
                             </div>
                             <div class="col-lg-6">
                                 <div class="d-none d-lg-block">
                                     <ol class="breadcrumb m-0 float-end">
                                         <li class="breadcrumb-item"><a
                                                 href="<?php echo APP_URL; ?>/admin/dashboard">Admin</a></li>
-                                        <li class="breadcrumb-item active">Locations</li>
+                                        <li class="breadcrumb-item active">Cities</li>
                                     </ol>
                                 </div>
                             </div>
@@ -120,7 +120,7 @@ checkAdminAuth();
                                             <div class="card">
                                                 <div class="card-body">
                                                     <i class="bx bx-group float-end m-0 h2 text-muted"></i>
-                                                    <h4 class="text-muted text-uppercase mt-0">Total Locations</h4>
+                                                    <h4 class="text-muted text-uppercase mt-0">Total Cities</h4>
                                                     <h3 class="mb-3" data-plugin="counterup">
                                                         <?= isset($locations) ? count($locations) : 0 ?>
                                                     </h3>
@@ -139,23 +139,23 @@ checkAdminAuth();
                                         </thead>
                                         <tbody>
                                             <?php if (isset($locations) && count($locations) > 0): ?>
-                                                <?php foreach ($locations as $location): ?>
-                                                    <tr>
-                                                        <td><?= htmlspecialchars($location['location']) ?></td>
-                                                        <td><?= isset($location['created_at']) ? date('d M Y', strtotime($location['created_at'])) : '' ?></td>
-                                                        <td>
-                                                            <button type="button" class="btn btn-info btn-sm edit-location-btn"
-                                                                data-id="<?= $location['id'] ?>"
-                                                                data-name="<?= htmlspecialchars($location['location']) ?>">Edit</button>
-                                                            <form method="POST" action="<?= APP_URL; ?>/admin/locations/delete"
-                                                                style="display:inline;"
-                                                                onsubmit="return confirm('Are you sure you want to delete this location?');">
-                                                                <input type="hidden" name="location_id" value="<?= $location['id'] ?>">
-                                                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                                            </form>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
+                                                    <?php foreach ($locations as $location): ?>
+                                                        <tr>
+                                                            <td><?= htmlspecialchars($location['city'] ?? $location['location']) ?></td>
+                                                            <td><?= isset($location['created_at']) ? date('d M Y', strtotime($location['created_at'])) : '' ?></td>
+                                                            <td>
+                                                                <button type="button" class="btn btn-info btn-sm edit-location-btn"
+                                                                    data-id="<?= $location['id'] ?>"
+                                                                    data-name="<?= htmlspecialchars($location['city'] ?? $location['location']) ?>">Edit</button>
+                                                                    <form method="POST" action="<?= APP_URL; ?>/admin/cities/delete"
+                                                                    style="display:inline;"
+                                                                    onsubmit="return confirm('Are you sure you want to delete this city?');">
+                                                                    <input type="hidden" name="location_id" value="<?= $location['id'] ?>">
+                                                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                                                </form>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
@@ -163,19 +163,19 @@ checkAdminAuth();
                             </div>
                         </div>
                     </div>
-                    <!-- Edit Location Modal -->
+                    <!-- Edit City Modal -->
                     <div class="modal fade" id="editLocationModal" tabindex="-1" aria-labelledby="editLocationModalLabel" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
-                                <form method="POST" action="<?php echo APP_URL; ?>/admin/locations/edit" id="editLocationForm">
+                                <form method="POST" action="<?php echo APP_URL; ?>/admin/cities/edit" id="editLocationForm">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="editLocationModalLabel">Edit Location</h5>
+                                        <h5 class="modal-title" id="editLocationModalLabel">Edit City</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
                                         <input type="hidden" name="location_id" id="editLocationId">
                                         <div class="mb-3">
-                                            <label for="editLocationName" class="form-label">Location Name</label>
+                                            <label for="editLocationName" class="form-label">City Name</label>
                                             <input type="text" class="form-control" id="editLocationName" name="location_name" required>
                                         </div>
                                     </div>

@@ -77,11 +77,9 @@ class AdminModel {
             $params[] = $filters['end_date'];
         }
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
-        $sql = "SELECT p.id, p.name, p.phone, u.email, p.gender, p.who_are_you, 
-            COALESCE(l.location, p.location) as location_name
+        $sql = "SELECT p.id, p.name, p.phone, u.email, p.gender, p.who_are_you, p.city as location_name
             FROM profile p 
             LEFT JOIN user u ON p.id = u.id 
-            LEFT JOIN locations l ON p.location = l.id 
             $whereSql ORDER BY p.created_at DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);

@@ -253,6 +253,20 @@ CREATE TABLE `listing` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+#To be added in db
+ALTER TABLE `listing` 
+ADD COLUMN `address` TEXT DEFAULT NULL 
+AFTER `location`;
+
+ALTER TABLE `listing`
+MODIFY `location` INT(11),
+ADD CONSTRAINT `listing_ibfk_location` FOREIGN KEY (`location`) REFERENCES `locations` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `listing` DROP FOREIGN KEY `listing_ibfk_location`;
+ALTER TABLE `listing` MODIFY `location` VARCHAR(255) NOT NULL;
+
+ALTER TABLE `listing`
+ADD COLUMN `status` ENUM('available','unavalable','inactive','active') NOT NULL DEFAULT 'active' AFTER `role`;
 
 --
 -- Dumping data for table `listing`
@@ -290,6 +304,8 @@ CREATE TABLE `locations` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+#To  be added in db
+RENAME TABLE locations TO city;
 
 --
 -- Dumping data for table `locations`
@@ -300,6 +316,16 @@ INSERT INTO `locations` (`id`, `location`, `created_at`, `updated_at`) VALUES
 (7, 'ahilyanagar', '2025-07-31 20:31:06', '2025-07-31 20:31:06');
 
 -- --------------------------------------------------------
+#to be added in db
+CREATE TABLE `locations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `city_id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  FOREIGN KEY (`city_id`) REFERENCES `city` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  UNIQUE KEY `unique_location_per_city` (`city_id`, `name`)
+);
 
 --
 -- Table structure for table `massage`
@@ -332,11 +358,15 @@ CREATE TABLE `profile` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+#to be added in db
+ALTER TABLE `profile` CHANGE COLUMN `location` `city` VARCHAR(255) DEFAULT NULL;
 --
 -- Dumping data for table `profile`
 --
 
-INSERT INTO `profile` (`id`, `name`, `phone`, `who_are_you`, `gender`, `location`, `avatar_id`, `uploaded_picture`, `vibes`, `created_at`, `updated_at`) VALUES
+ALTER TABLE `profile` CHANGE COLUMN `location` `city` VARCHAR(255) DEFAULT NULL;
+
+INSERT INTO `profile` (`id`, `name`, `phone`, `who_are_you`, `gender`, `city`, `avatar_id`, `uploaded_picture`, `vibes`, `created_at`, `updated_at`) VALUES
 (1, 'Admin', '9623908967', 'flat_owner', 'male', NULL, 19, NULL, NULL, '2025-07-31 19:46:17', '2025-07-31 19:46:17'),
 (71, 'Om Phopse', '9623908967', 'roommate', 'male', '2', 24, NULL, '30 | 15 | 16 | 21 | 22', '2025-07-31 21:38:35', '2025-08-01 07:27:01'),
 (72, 'Rohit Sharma', '9623908967', 'roommate', 'male', '2', 25, NULL, '30 | 15 | 18 | 19 | 25 | 29 | 31', '2025-07-31 21:55:30', '2025-08-01 07:27:04'),
