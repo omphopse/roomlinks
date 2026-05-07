@@ -83,6 +83,17 @@ switch ($request) {
         $controller->myListings();
         break;
 
+    case '/dashboard/listings':
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || strtolower(trim($_SESSION['user_role'])) !== 'broker') {
+            header('Location: ' . APP_URL . '/');
+            exit;
+        }
+        $controller = new UserController();
+        $controller->brokerListings();
+        break;
+
     case '/add-roommatelisting':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $controller = new UserController();
@@ -185,6 +196,7 @@ switch ($request) {
             break;
         }
         require_once __DIR__ . '/../models/UserModel.php';
+        require_once __DIR__ . '/../models/BrokerModel.php';
         $userModel = new UserModel();
         $listing = $userModel->getListingById($listingId);
         if (!$listing) {
@@ -192,6 +204,25 @@ switch ($request) {
             require_once __DIR__ . '/../404.php';
             break;
         }
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $userId = $_SESSION['user_id'] ?? null;
+        $userName = null;
+        $userEmail = null;
+        if ($userId) {
+            $user = $userModel->getUserById($userId);
+            $profile = $userModel->getProfileById($userId);
+            $userName = $profile['name'] ?? null;
+            $userEmail = $user['email'] ?? null;
+        }
+        BrokerModel::logListingClick(
+            $listingId,
+            $userId,
+            $listing['user_id'] ?? null,
+            $userName,
+            $userEmail,
+            $_SERVER['REMOTE_ADDR'] ?? null,
+            $_SERVER['HTTP_USER_AGENT'] ?? null
+        );
         require_once __DIR__ . '/../views/roomlisting.php';
         break;
 
@@ -556,6 +587,37 @@ switch ($request) {
         } else {
             require_once __DIR__ . '/../views/feedback.php';
         }
+        break;
+
+    case '/dashboard/users':
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+            header('Location: ' . APP_URL . '/');
+            exit;
+        }
+        if (!isset($_SESSION['user_role']) || strtolower(trim($_SESSION['user_role'])) !== 'broker') {
+            header('Location: ' . APP_URL . '/');
+            exit;
+        }
+        $controller = new UserController();
+        $controller->brokerUsers();
+        break;
+
+    case '/dashboard':
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+            header('Location: ' . APP_URL . '/');
+            exit;
+        }
+        require_once __DIR__ . '/../config/database.php';
+        require_once __DIR__ . '/../models/UserModel.php';
+        $userModel = new UserModel();
+        $profile = $userModel->getProfileById($_SESSION['user_id']);
+        if (strtolower($profile['who_are_you'] ?? '') !== 'broker') {
+            header('Location: ' . APP_URL . '/');
+            exit;
+        }
+        require_once __DIR__ . '/../views/broker/dashboard.php';
         break;
 
     default:

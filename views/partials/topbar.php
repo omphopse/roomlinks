@@ -40,11 +40,31 @@
                 <i class="bx bx-moon font-size-24"></i>
             </li>
             <li class="dropdown">
+                <?php 
+                if (session_status() === PHP_SESSION_NONE) session_start();
+                
+                // Get user name from session or fetch from database
+                $displayName = 'User';
+                if (!empty($_SESSION['user_id'])) {
+                    // Try to get from session first
+                    if (!empty($_SESSION['user_name'])) {
+                        $displayName = $_SESSION['user_name'];
+                    } else if (!empty($_SESSION['logged_in'])) {
+                        // Fetch from database if not in session
+                        require_once __DIR__ . '/../../models/UserModel.php';
+                        $userModel = new UserModel();
+                        $profile = $userModel->getProfileById($_SESSION['user_id']);
+                        if ($profile && !empty($profile['name'])) {
+                            $displayName = $profile['name'];
+                        }
+                    }
+                }
+                ?>
                 <a class="nav-link dropdown-toggle nav-user me-0 waves-effect waves-light" data-bs-toggle="dropdown"
                     href="#" role="button" aria-haspopup="false" aria-expanded="false">
                     <i class="bx bx-user-circle float-end m-0 h2 text-muted"></i>
                     <span class="ms-1 d-none d-md-inline-block">
-                        <?= $_SESSION['user_name'] ?? 'Admin' ?> <i class="mdi mdi-chevron-down"></i>
+                        <?= htmlspecialchars($displayName) ?> <i class="mdi mdi-chevron-down"></i>
                     </span>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end profile-dropdown">

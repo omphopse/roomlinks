@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../models/BrokerModel.php';
+require_once __DIR__ . '/../models/Location.php';
 
 require_once __DIR__ . '/../helpers/auth.php';
 require_once __DIR__ . '/../helpers/PersistentLogin.php';
@@ -261,6 +263,48 @@ class UserController {
         $totalListings = $userModel->getListingsCountByUser($userId);
         $totalPages = ceil($totalListings / $perPage);
         require __DIR__ . '/../views/mylistings.php';
+    }
+
+    public function brokerListings() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || strtolower(trim($_SESSION['user_role'])) !== 'broker') {
+            header('Location: ' . APP_URL . '/');
+            exit;
+        }
+
+        $brokerId = $_SESSION['user_id'];
+        $filters = [
+            'start_date' => trim($_GET['start_date'] ?? ''),
+            'end_date' => trim($_GET['end_date'] ?? ''),
+            'role' => trim($_GET['role'] ?? 'any'),
+            'gender' => trim($_GET['gender'] ?? 'any'),
+            'occupancy' => trim($_GET['occupancy'] ?? 'any'),
+        ];
+
+        $listings = BrokerModel::getBrokerListings($brokerId, $filters);
+        require __DIR__ . '/../views/broker/listings.php';
+    }
+
+    public function brokerUsers() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || strtolower(trim($_SESSION['user_role'])) !== 'broker') {
+            header('Location: ' . APP_URL . '/');
+            exit;
+        }
+
+        $brokerId = $_SESSION['user_id'];
+        $filters = [
+            'start_date' => trim($_GET['start_date'] ?? ''),
+            'end_date' => trim($_GET['end_date'] ?? ''),
+            'role' => trim($_GET['role'] ?? 'any'),
+            'location_id' => trim($_GET['location'] ?? ''),
+        ];
+
+        $locationModel = new Location();
+        $locations = $locationModel->getAllLocations();
+
+        $clicks = BrokerModel::getBrokerListingClicks($brokerId, $filters);
+        require __DIR__ . '/../views/broker/users.php';
     }
 
 
@@ -664,6 +708,17 @@ class UserController {
                     // Set session user_role for reliability (used by checkAdminAuth)
                     loginUser($userId, $role);
                     $_SESSION['user_role'] = $role;
+
+                    // If profile is a broker, promote session role to broker
+                    if ($role !== 'admin') {
+                        require_once __DIR__ . '/../models/UserModel.php';
+                        $userModel = new UserModel();
+                        $profile = $userModel->getProfileById($userId);
+                        if (strtolower(trim($profile['who_are_you'] ?? '')) === 'broker') {
+                            $_SESSION['user_role'] = 'broker';
+                        }
+                    }
+
                     // Set persistent login token with PDO
                     $pdo = getPDO();
                     $persistentLogin = new PersistentLogin($pdo);

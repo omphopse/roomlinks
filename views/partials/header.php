@@ -64,12 +64,19 @@
                                 </div>
                             </div>
                             <ul class="py-2 text-gray-600">
+                                <?php if (empty($profile['who_are_you']) || strtolower($profile['who_are_you']) !== 'broker'): ?>
                                 <li><a href="<?php echo APP_URL; ?>/vibes" class="block px-6 py-2 hover:bg-gray-50">My
                                         Vibes</a></li>
+                                <?php endif; ?>
                                 <li><a href="<?php echo APP_URL; ?>/profile" class="block px-6 py-2 hover:bg-gray-50">My
                                         Profile</a></li>
+                                <?php if (empty($profile['who_are_you']) || strtolower($profile['who_are_you']) !== 'broker'): ?>
                                 <li><a href="<?php echo APP_URL; ?>/mylistings" class="block px-6 py-2 hover:bg-gray-50">My
                                         Listings</a></li>
+                                <?php endif; ?>
+                                <?php if (!empty($profile['who_are_you']) && strtolower($profile['who_are_you']) === 'broker'): ?>
+                                <li><a href="<?php echo APP_URL; ?>/dashboard" class="block px-6 py-2 hover:bg-gray-50">Dashboard</a></li>
+                                <?php endif; ?>
                                 <li><a href="<?php echo APP_URL; ?>/feedback" class="block px-6 py-2 hover:bg-gray-50">Write
                                         a FeedBack</a></li>
                                 <li><a href=" <?php echo APP_URL; ?>/contact" class="block px-6 py-2 hover:bg-gray-50">Need

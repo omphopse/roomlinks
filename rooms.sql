@@ -28,7 +28,7 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `amenities` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `images` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -64,7 +64,7 @@ INSERT INTO `amenities` (`id`, `images`, `created_at`, `updated_at`, `name`) VAL
 --
 
 CREATE TABLE `audit_logs` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` int(11) DEFAULT NULL,
   `user_role` varchar(50) NOT NULL,
   `operation` varchar(10) NOT NULL,
@@ -183,7 +183,7 @@ INSERT INTO `audit_logs` (`id`, `user_id`, `user_role`, `operation`, `table_name
 --
 
 CREATE TABLE `contact_us` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `name` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
   `phone` varchar(20) DEFAULT NULL,
@@ -208,7 +208,7 @@ INSERT INTO `contact_us` (`id`, `name`, `email`, `phone`, `subject`, `message`, 
 --
 
 CREATE TABLE `feedback` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `subject` varchar(255) NOT NULL,
   `feedback` text NOT NULL,
   `user_id` int(11) NOT NULL,
@@ -234,7 +234,7 @@ INSERT INTO `feedback` (`id`, `subject`, `feedback`, `user_id`, `status`, `creat
 --
 
 CREATE TABLE `listing` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` int(11) NOT NULL,
   `location` varchar(255) NOT NULL,
   `rent` decimal(10,2) NOT NULL,
@@ -299,7 +299,7 @@ INSERT INTO `listing` (`id`, `user_id`, `location`, `rent`, `gender`, `occupancy
 --
 
 CREATE TABLE `locations` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `location` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -323,16 +323,16 @@ CREATE TABLE `locations` (
   `name` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  FOREIGN KEY (`city_id`) REFERENCES `city` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  UNIQUE KEY `unique_location_per_city` (`city_id`, `name`)
-);
+  UNIQUE KEY `unique_location_per_city` (`city_id`, `name`),
+  FOREIGN KEY (`city_id`) REFERENCES `city` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Table structure for table `massage`
 --
 
 CREATE TABLE `massage` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `uname` varchar(255) NOT NULL,
   `massage` text NOT NULL,
   `created_at` datetime DEFAULT current_timestamp()
@@ -345,10 +345,10 @@ CREATE TABLE `massage` (
 --
 
 CREATE TABLE `profile` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `name` varchar(100) NOT NULL,
   `phone` varchar(20) DEFAULT NULL,
-  `who_are_you` varchar(100) DEFAULT NULL,
+  `who_are_you` enum('roommate','flat_owner','pg_owner','broker') DEFAULT NULL,
   `gender` enum('male','female','other') DEFAULT NULL,
   `location` varchar(255) DEFAULT NULL,
   `avatar_id` int(11) DEFAULT NULL,
@@ -395,7 +395,7 @@ INSERT INTO `profile` (`id`, `name`, `phone`, `who_are_you`, `gender`, `city`, `
 --
 
 CREATE TABLE `profile_pictures` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `gender` varchar(10) NOT NULL,
   `image` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
@@ -434,7 +434,7 @@ INSERT INTO `profile_pictures` (`id`, `gender`, `image`, `created_at`) VALUES
 --
 
 CREATE TABLE `property_highlights` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `name` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -468,7 +468,7 @@ INSERT INTO `property_highlights` (`id`, `name`, `created_at`, `updated_at`) VAL
 --
 
 CREATE TABLE `report` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `listing_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `query` enum('occupied','NLN','wrong info') NOT NULL,
@@ -497,14 +497,15 @@ INSERT INTO `report` (`id`, `listing_id`, `user_id`, `query`, `status`, `created
 --
 
 CREATE TABLE `user` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `name` varchar(255) NOT NULL,
-  `email` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL UNIQUE,
   `password` varchar(255) NOT NULL,
   `phone` varchar(15) DEFAULT NULL,
   `role` varchar(50) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  KEY `idx_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -540,9 +541,9 @@ INSERT INTO `user` (`id`, `name`, `email`, `password`, `phone`, `role`, `created
 --
 
 CREATE TABLE `user_tokens` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `user_id` int(11) NOT NULL,
-  `token` char(64) NOT NULL,
+  `token` char(64) NOT NULL UNIQUE,
   `expires_at` datetime NOT NULL,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -561,7 +562,7 @@ INSERT INTO `user_tokens` (`id`, `user_id`, `token`, `expires_at`, `created_at`)
 --
 
 CREATE TABLE `vibes` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `images` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),

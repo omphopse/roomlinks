@@ -101,7 +101,8 @@ $femaleAvatars = UserController::getRandomAvatars(array_values($femaleAvatars), 
                         <option value="">Select an option</option>
                         <option value="roommate">Looking for room/roommate/PG</option>
                         <option value="flat_owner">Flat Owner</option>
-                        <option value="pg_owner ">PG Owner</option>
+                        <option value="pg_owner">PG Owner</option>
+                        <option value="broker">Broker</option>
                     </select>
                 </div>
                 <div class="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">

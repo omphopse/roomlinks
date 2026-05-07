@@ -46,6 +46,16 @@ function checkAdminAuth() {
         exit();
     }
 }
+
+function checkBrokerAuth() {
+    checkAuth();
+
+    if (!isset($_SESSION['user_role']) || strtolower(trim($_SESSION['user_role'])) !== 'broker') {
+        header('Location: ' . APP_URL . '/');
+        exit();
+    }
+}
+
 function checkUserAuth() {
     checkAuth();
     if (!isset($_SESSION['user_id'])) {
